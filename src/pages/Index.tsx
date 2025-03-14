@@ -1,24 +1,21 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Task, Priority, Label, CalendarEvent } from "@/lib/types";
 import TaskBoard from "@/components/TaskBoard";
+import StackedTaskBoard from "@/components/StackedTaskBoard";
 import CalendarView from "@/components/CalendarView";
+import AnimatedPanel from "@/components/AnimatedPanel";
 import AddTaskDialog from "@/components/AddTaskDialog";
 import EditTaskDialog from "@/components/EditTaskDialog";
 import { 
   Plus, 
   Calendar as CalendarIcon, 
-  ChevronLeft, 
-  ChevronRight,
   CalendarDays,
   LayoutList 
 } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { addMinutes } from "date-fns";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 // Mock labels
 const initialLabels: Label[] = [
@@ -103,6 +100,8 @@ const Index = () => {
   const [viewMode, setViewMode] = useState<'calendar' | 'taskboard' | 'day'>('calendar');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [calendarExpanded, setCalendarExpanded] = useState(true);
+  const [taskboardExpanded, setTaskboardExpanded] = useState(false);
   const { toast } = useToast();
 
   const handleAddTask = (task: Task) => {
@@ -174,6 +173,16 @@ const Index = () => {
     });
   };
 
+  const toggleCalendarExpanded = () => {
+    setCalendarExpanded(prev => !prev);
+    setTaskboardExpanded(prev => !prev);
+  };
+
+  const toggleTaskboardExpanded = () => {
+    setTaskboardExpanded(prev => !prev);
+    setCalendarExpanded(prev => !prev);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="p-4 bg-white border-b">
@@ -196,7 +205,11 @@ const Index = () => {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => setViewMode('calendar')}
+                onClick={() => {
+                  setViewMode('calendar');
+                  setCalendarExpanded(true);
+                  setTaskboardExpanded(false);
+                }}
                 className={viewMode === 'calendar' ? 'bg-blue-100' : ''}
               >
                 <CalendarIcon className="h-4 w-4 mr-1" />
@@ -205,7 +218,11 @@ const Index = () => {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => setViewMode('taskboard')}
+                onClick={() => {
+                  setViewMode('taskboard');
+                  setTaskboardExpanded(true);
+                  setCalendarExpanded(false);
+                }}
                 className={viewMode === 'taskboard' ? 'bg-blue-100' : ''}
               >
                 <LayoutList className="h-4 w-4 mr-1" />
@@ -222,10 +239,12 @@ const Index = () => {
 
       <main className="flex-1 container mx-auto p-4">
         {viewMode === 'day' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[calc(100vh-10rem)]">
-            <div className="bg-white rounded-lg p-4 shadow-sm border h-full overflow-hidden">
-              <h2 className="text-xl font-semibold mb-4">Today</h2>
-              <div className="h-full overflow-auto">
+          <div className="flex gap-4 h-[calc(100vh-10rem)]">
+            <div className="w-1/3 bg-white rounded-lg shadow-sm border h-full overflow-hidden">
+              <div className="p-4 border-b">
+                <h2 className="text-xl font-semibold">Today</h2>
+              </div>
+              <div className="h-[calc(100%-4rem)] overflow-auto p-4">
                 <CalendarView 
                   singleDayMode={true}
                   events={events}
@@ -238,9 +257,11 @@ const Index = () => {
               </div>
             </div>
             
-            <div className="bg-white rounded-lg p-4 shadow-sm border h-full overflow-hidden">
-              <h2 className="text-xl font-semibold mb-4">Task Board</h2>
-              <div className="h-full overflow-auto">
+            <div className="w-2/3 bg-white rounded-lg shadow-sm border h-full overflow-hidden">
+              <div className="p-4 border-b">
+                <h2 className="text-xl font-semibold">Task Board</h2>
+              </div>
+              <div className="h-[calc(100%-4rem)] overflow-auto p-4">
                 <TaskBoard 
                   tasks={tasks}
                   onTaskClick={handleTaskClick}
@@ -254,61 +275,44 @@ const Index = () => {
             </div>
           </div>
         ) : (
-          <div className="h-[calc(100vh-10rem)] overflow-hidden">
-            <ResizablePanelGroup 
-              direction="horizontal" 
-              className="h-full border rounded-lg"
+          <div className="flex gap-4 h-[calc(100vh-10rem)]">
+            <AnimatedPanel
+              title="Calendar"
+              side="left"
+              expanded={calendarExpanded}
+              onToggle={toggleCalendarExpanded}
             >
-              <ResizablePanel 
-                defaultSize={viewMode === 'calendar' ? 80 : 20} 
-                minSize={20}
-                className="bg-white p-4"
-              >
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold">Calendar</h2>
-                  {viewMode === 'taskboard' && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => setViewMode('calendar')}
-                    >
-                      <ChevronRight className="h-5 w-5" />
-                    </Button>
-                  )}
-                </div>
-                <div className="h-[calc(100%-3rem)] overflow-auto">
-                  <CalendarView 
-                    singleDayMode={false}
-                    events={events}
-                    tasks={tasks}
-                    onTaskUnschedule={handleTaskUnschedule}
-                    onTaskComplete={handleTaskComplete}
-                    onDropTask={handleTaskSchedule}
-                    onTaskClick={handleTaskClick}
-                  />
-                </div>
-              </ResizablePanel>
-              
-              <ResizableHandle withHandle />
-              
-              <ResizablePanel 
-                defaultSize={viewMode === 'taskboard' ? 80 : 20} 
-                minSize={20}
-                className="bg-white p-4"
-              >
-                <div className="flex justify-between items-center mb-4">
-                  {viewMode === 'calendar' && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => setViewMode('taskboard')}
-                    >
-                      <ChevronLeft className="h-5 w-5" />
-                    </Button>
-                  )}
-                  <h2 className="text-xl font-semibold">Task Board</h2>
-                </div>
-                <div className="h-[calc(100%-3rem)] overflow-auto">
+              <div className="p-4">
+                <CalendarView 
+                  singleDayMode={false}
+                  events={events}
+                  tasks={tasks}
+                  onTaskUnschedule={handleTaskUnschedule}
+                  onTaskComplete={handleTaskComplete}
+                  onDropTask={handleTaskSchedule}
+                  onTaskClick={handleTaskClick}
+                />
+              </div>
+            </AnimatedPanel>
+            
+            <AnimatedPanel
+              title="Task Board"
+              side="right"
+              expanded={taskboardExpanded}
+              onToggle={toggleTaskboardExpanded}
+            >
+              {calendarExpanded ? (
+                <StackedTaskBoard
+                  tasks={tasks}
+                  onTaskClick={handleTaskClick}
+                  onAddTask={(priority) => {
+                    setInitialPriority(priority);
+                    setAddTaskDialogOpen(true);
+                  }}
+                  onDragStart={setDraggingTask}
+                />
+              ) : (
+                <div className="p-4">
                   <TaskBoard 
                     tasks={tasks}
                     onTaskClick={handleTaskClick}
@@ -319,8 +323,8 @@ const Index = () => {
                     onDragStart={setDraggingTask}
                   />
                 </div>
-              </ResizablePanel>
-            </ResizablePanelGroup>
+              )}
+            </AnimatedPanel>
           </div>
         )}
       </main>

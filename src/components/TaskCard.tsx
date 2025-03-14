@@ -22,9 +22,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick }) => {
   return (
     <Card 
       className={cn(
-        "cursor-grab active:cursor-grabbing transition-all bg-white",
+        "cursor-pointer transition-all bg-white",
         isDragging && "task-dragging shadow-lg",
-        "mb-3 hover:shadow-md"
+        "mb-3 hover:shadow-md",
+        task.priority === "low" && "priority-low",
+        task.priority === "medium" && "priority-medium",
+        task.priority === "high" && "priority-high",
+        task.priority === "critical" && "priority-critical"
       )}
       onClick={onClick}
     >
