@@ -21,6 +21,7 @@ import { Clock, ArrowLeft, ArrowRight } from "lucide-react";
 import { Task, CalendarEvent } from "@/lib/types";
 import TaskTimer from "./TaskTimer";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface CalendarViewProps {
   events: CalendarEvent[];
@@ -208,11 +209,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
+      {/* Day headers */}
       <div className={cn(
         "grid gap-1",
         singleDayMode ? "grid-cols-1" : "grid-cols-7"
       )}>
-        {/* Day headers */}
         {days.map((day) => (
           <div 
             key={day.toString()} 
@@ -225,52 +226,61 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             <div>{format(day, 'd')}</div>
           </div>
         ))}
+      </div>
 
-        {/* Day columns */}
-        {days.map((day) => (
-          <div 
-            key={day.toString()} 
-            className={cn(
-              "relative border rounded-md overflow-hidden",
-              "h-[600px] overflow-y-auto",
-              singleDayMode && "w-full"
-            )}
-          >
-            {HOURS.map((hour) => (
+      {/* Calendar body with a single scroll area */}
+      <ScrollArea className="flex-1">
+        <div className="flex-1 h-[1440px]"> {/* 24 hours × 60px = 1440px */}
+          <div className={cn(
+            "grid gap-1 h-full",
+            singleDayMode ? "grid-cols-1" : "grid-cols-7"
+          )}>
+            {/* Day columns */}
+            {days.map((day) => (
               <div 
-                key={hour} 
-                className="border-t relative"
-                style={{ height: `${HOUR_HEIGHT}px` }}
-                onDragOver={(e) => handleDragOver(e, day, hour)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, day, hour)}
+                key={day.toString()} 
+                className={cn(
+                  "relative border rounded-md h-full",
+                  singleDayMode && "w-full"
+                )}
               >
-                <div className="absolute left-0 text-xs text-gray-400 -mt-2 ml-1">
-                  {hour}:00
-                </div>
+                {HOURS.map((hour) => (
+                  <div 
+                    key={hour} 
+                    className="border-t relative"
+                    style={{ height: `${HOUR_HEIGHT}px` }}
+                    onDragOver={(e) => handleDragOver(e, day, hour)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, day, hour)}
+                  >
+                    <div className="absolute left-0 text-xs text-gray-400 -mt-2 ml-1">
+                      {hour}:00
+                    </div>
+                  </div>
+                ))}
+
+                {/* Current time indicator */}
+                {isSameDay(day, new Date()) && (
+                  <div 
+                    className="current-time-indicator"
+                    style={{ top: `${currentTimePosition}px` }}
+                  />
+                )}
+
+                {/* Tasks */}
+                {getTasksForDay(day).map(task => (
+                  renderCalendarItem(task, true)
+                ))}
+
+                {/* Events */}
+                {getEventsForDay(day).map(event => (
+                  renderCalendarItem(event, false)
+                ))}
               </div>
             ))}
-
-            {/* Current time indicator */}
-            {isSameDay(day, new Date()) && (
-              <div 
-                className="current-time-indicator"
-                style={{ top: `${currentTimePosition}px` }}
-              />
-            )}
-
-            {/* Tasks */}
-            {getTasksForDay(day).map(task => (
-              renderCalendarItem(task, true)
-            ))}
-
-            {/* Events */}
-            {getEventsForDay(day).map(event => (
-              renderCalendarItem(event, false)
-            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      </ScrollArea>
     </div>
   );
 };

@@ -4,12 +4,15 @@ import { Task, Priority } from "@/lib/types";
 import TaskCard from "./TaskCard";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface StackedTaskBoardProps {
   tasks: Task[];
   onTaskClick: (task: Task) => void;
   onAddTask: (priority: Priority) => void;
   onDragStart: (task: Task) => void;
+  minimized?: boolean;
 }
 
 const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
@@ -17,6 +20,7 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
   onTaskClick,
   onAddTask,
   onDragStart,
+  minimized = false,
 }) => {
   const priorities: Priority[] = ["critical", "high", "medium", "low"];
   
@@ -96,12 +100,12 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
     );
   };
 
-  return (
-    <div className="overflow-y-auto p-4">
-      {renderScheduledSection()}
-      {priorities.map(priority => renderPrioritySection(priority))}
-      
-      <div className="flex flex-wrap gap-2 mt-4">
+  const renderAddTaskButtons = () => {
+    return (
+      <div className={cn(
+        "flex gap-2 mt-4",
+        minimized ? "flex-col" : "flex-wrap"
+      )}>
         {priorities.map(priority => (
           <Button 
             key={priority}
@@ -121,13 +125,18 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
           </Button>
         ))}
       </div>
-    </div>
+    );
+  };
+
+  return (
+    <ScrollArea className="h-full">
+      <div className="p-4">
+        {renderScheduledSection()}
+        {priorities.map(priority => renderPrioritySection(priority))}
+        {renderAddTaskButtons()}
+      </div>
+    </ScrollArea>
   );
 };
 
 export default StackedTaskBoard;
-
-// Missing import
-function cn(...args: any[]) {
-  return args.filter(Boolean).join(" ");
-}

@@ -244,7 +244,7 @@ const Index = () => {
               <div className="p-4 border-b">
                 <h2 className="text-xl font-semibold">Today</h2>
               </div>
-              <div className="h-[calc(100%-4rem)] overflow-auto p-4">
+              <div className="h-[calc(100%-4rem)] overflow-auto">
                 <CalendarView 
                   singleDayMode={true}
                   events={events}
@@ -261,7 +261,7 @@ const Index = () => {
               <div className="p-4 border-b">
                 <h2 className="text-xl font-semibold">Task Board</h2>
               </div>
-              <div className="h-[calc(100%-4rem)] overflow-auto p-4">
+              <div className="h-[calc(100%-4rem)] overflow-auto">
                 <TaskBoard 
                   tasks={tasks}
                   onTaskClick={handleTaskClick}
@@ -282,17 +282,15 @@ const Index = () => {
               expanded={calendarExpanded}
               onToggle={toggleCalendarExpanded}
             >
-              <div className="p-4">
-                <CalendarView 
-                  singleDayMode={false}
-                  events={events}
-                  tasks={tasks}
-                  onTaskUnschedule={handleTaskUnschedule}
-                  onTaskComplete={handleTaskComplete}
-                  onDropTask={handleTaskSchedule}
-                  onTaskClick={handleTaskClick}
-                />
-              </div>
+              <CalendarView 
+                singleDayMode={false}
+                events={events}
+                tasks={tasks}
+                onTaskUnschedule={handleTaskUnschedule}
+                onTaskComplete={handleTaskComplete}
+                onDropTask={handleTaskSchedule}
+                onTaskClick={handleTaskClick}
+              />
             </AnimatedPanel>
             
             <AnimatedPanel
@@ -301,8 +299,8 @@ const Index = () => {
               expanded={taskboardExpanded}
               onToggle={toggleTaskboardExpanded}
             >
-              {calendarExpanded ? (
-                <StackedTaskBoard
+              {taskboardExpanded ? (
+                <TaskBoard 
                   tasks={tasks}
                   onTaskClick={handleTaskClick}
                   onAddTask={(priority) => {
@@ -312,17 +310,16 @@ const Index = () => {
                   onDragStart={setDraggingTask}
                 />
               ) : (
-                <div className="p-4">
-                  <TaskBoard 
-                    tasks={tasks}
-                    onTaskClick={handleTaskClick}
-                    onAddTask={(priority) => {
-                      setInitialPriority(priority);
-                      setAddTaskDialogOpen(true);
-                    }}
-                    onDragStart={setDraggingTask}
-                  />
-                </div>
+                <StackedTaskBoard
+                  tasks={tasks}
+                  onTaskClick={handleTaskClick}
+                  onAddTask={(priority) => {
+                    setInitialPriority(priority);
+                    setAddTaskDialogOpen(true);
+                  }}
+                  onDragStart={setDraggingTask}
+                  minimized={true}
+                />
               )}
             </AnimatedPanel>
           </div>

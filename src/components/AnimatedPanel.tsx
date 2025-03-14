@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -45,8 +45,8 @@ const AnimatedPanel: React.FC<AnimatedPanelProps> = ({
         </Button>
       </div>
       <div className={cn(
-        "flex-1 overflow-auto transition-all duration-300",
-        !expanded && "opacity-0 pointer-events-none"
+        "flex-1 transition-all duration-300",
+        expanded ? "opacity-100 overflow-auto" : "opacity-0 overflow-hidden"
       )}>
         {children}
       </div>
