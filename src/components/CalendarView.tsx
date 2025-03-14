@@ -28,6 +28,8 @@ interface CalendarViewProps {
   onTaskUnschedule: (taskId: string) => void;
   onTaskComplete: (taskId: string) => void;
   onDropTask: (task: Task, startTime: Date) => void;
+  onTaskClick?: (task: Task) => void;
+  singleDayMode?: boolean;
 }
 
 const HOUR_HEIGHT = 60; // pixels per hour
@@ -38,16 +40,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   tasks,
   onTaskUnschedule,
   onTaskComplete,
-  onDropTask
+  onDropTask,
+  onTaskClick,
+  singleDayMode = false
 }) => {
-  const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [currentTimePosition, setCurrentTimePosition] = useState<number>(0);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
-
-  const start = startOfWeek(currentWeek, { weekStartsOn: 1 });
-  const end = endOfWeek(currentWeek, { weekStartsOn: 1 });
-  const days = eachDayOfInterval({ start, end });
+  
+  // Calculate the start and end of the week/day based on the current mode
+  const start = singleDayMode ? currentDate : startOfWeek(currentDate, { weekStartsOn: 0 });
+  const end = singleDayMode ? currentDate : endOfWeek(currentDate, { weekStartsOn: 0 });
+  const days = singleDayMode ? [currentDate] : eachDayOfInterval({ start, end });
 
   // Update the current time indicator
   useEffect(() => {
@@ -64,16 +67,24 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     return () => clearInterval(interval);
   }, []);
 
+  const goToPreviousDay = () => {
+    setCurrentDate(prev => addDays(prev, -1));
+  };
+
+  const goToNextDay = () => {
+    setCurrentDate(prev => addDays(prev, 1));
+  };
+
   const goToPreviousWeek = () => {
-    setCurrentWeek(prev => addDays(prev, -7));
+    setCurrentDate(prev => addDays(prev, -7));
   };
 
   const goToNextWeek = () => {
-    setCurrentWeek(prev => addDays(prev, 7));
+    setCurrentDate(prev => addDays(prev, 7));
   };
 
   const goToToday = () => {
-    setCurrentWeek(new Date());
+    setCurrentDate(new Date());
   };
 
   const handleDragOver = (e: React.DragEvent, day: Date, hour: number) => {
@@ -117,11 +128,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     );
   };
 
-  const handleTaskClick = (task: Task) => {
-    setSelectedTask(task);
-    setDialogOpen(true);
-  };
-
   const renderCalendarItem = (item: Task | CalendarEvent, isTask: boolean) => {
     const start = isTask 
       ? (item as Task).scheduled?.start as Date
@@ -154,7 +160,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           top: `${top}px`,
           height: `${height}px`,
         }}
-        onClick={isTask ? () => handleTaskClick(item as Task) : undefined}
+        onClick={isTask && onTaskClick ? () => onTaskClick(item as Task) : undefined}
       >
         <div className="font-medium truncate">
           {isTask ? (item as Task).title : (item as CalendarEvent).title}
@@ -173,13 +179,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center mb-4">
         <div className="text-xl font-semibold">
-          {format(start, 'MMM d')} - {format(end, 'MMM d, yyyy')}
+          {singleDayMode 
+            ? format(currentDate, 'MMMM d, yyyy') 
+            : `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`
+          }
         </div>
         <div className="flex gap-2">
           <Button 
             size="sm" 
             variant="outline" 
-            onClick={goToPreviousWeek}
+            onClick={singleDayMode ? goToPreviousDay : goToPreviousWeek}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -192,14 +201,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           <Button 
             size="sm" 
             variant="outline" 
-            onClick={goToNextWeek}
+            onClick={singleDayMode ? goToNextDay : goToNextWeek}
           >
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
+      <div className={cn(
+        "grid gap-1",
+        singleDayMode ? "grid-cols-1" : "grid-cols-7"
+      )}>
         {/* Day headers */}
         {days.map((day) => (
           <div 
@@ -220,7 +232,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             key={day.toString()} 
             className={cn(
               "relative border rounded-md overflow-hidden",
-              "h-[600px] overflow-y-auto"
+              "h-[600px] overflow-y-auto",
+              singleDayMode && "w-full"
             )}
           >
             {HOURS.map((hour) => (
@@ -258,65 +271,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
         ))}
       </div>
-
-      {/* Task detail dialog */}
-      <Dialog 
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedTask?.title}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {selectedTask?.description && (
-              <p className="text-sm text-muted-foreground">
-                {selectedTask?.description}
-              </p>
-            )}
-            
-            {selectedTask?.scheduled && (
-              <div className="text-sm">
-                <div className="font-medium">Scheduled Time:</div>
-                <div>
-                  {selectedTask.scheduled.start && format(new Date(selectedTask.scheduled.start), 'PPp')} - 
-                  {selectedTask.scheduled.end && format(new Date(selectedTask.scheduled.end), 'PPp')}
-                </div>
-              </div>
-            )}
-            
-            <TaskTimer
-              duration={selectedTask?.estimatedTime || 0}
-              onComplete={() => {
-                onTaskComplete(selectedTask?.id || '');
-                setDialogOpen(false);
-              }}
-            />
-            
-            <div className="flex justify-between">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  onTaskUnschedule(selectedTask?.id || '');
-                  setDialogOpen(false);
-                }}
-              >
-                Return to Task Board
-              </Button>
-              <Button
-                onClick={() => {
-                  onTaskComplete(selectedTask?.id || '');
-                  setDialogOpen(false);
-                }}
-              >
-                Mark as Completed
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

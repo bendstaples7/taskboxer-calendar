@@ -104,19 +104,19 @@
 }
 
 .priority-low {
-  @apply bg-blue-400 border-blue-500;
+  @apply border-l-4 border-blue-500;
 }
 
 .priority-medium {
-  @apply bg-yellow-400 border-yellow-500;
+  @apply border-l-4 border-yellow-500;
 }
 
 .priority-high {
-  @apply bg-orange-400 border-orange-500;
+  @apply border-l-4 border-orange-500;
 }
 
 .priority-critical {
-  @apply bg-red-400 border-red-500;
+  @apply border-l-4 border-red-500;
 }
 
 .calendar-task {
@@ -134,3 +134,14 @@
 .droppable-active {
   @apply bg-blue-100 transition-colors duration-200;
 }
+
+/* Panel transitions */
+.panel-slide-in {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+/* Handle styles */
+.panel-handle:hover {
+  @apply bg-blue-200;
+}
+
