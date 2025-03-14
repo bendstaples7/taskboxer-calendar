@@ -49,7 +49,7 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
       'bg-red-100';
 
     return (
-      <div className="mb-4">
+      <div key={priority} className="mb-4">
         <div className={`p-2 ${colorClass} rounded-t-md font-medium flex justify-between items-center`}>
           <h2>{capitalizedPriority}</h2>
           <span className="bg-gray-100 px-2 rounded-full text-sm">{priorityTasks.length}</span>
@@ -77,7 +77,7 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
     if (scheduledTasks.length === 0) return null;
 
     return (
-      <div className="mb-4">
+      <div key="scheduled" className="mb-4">
         <div className="p-2 bg-purple-100 rounded-t-md font-medium flex justify-between items-center">
           <h2>Scheduled</h2>
           <span className="bg-gray-100 px-2 rounded-full text-sm">{scheduledTasks.length}</span>

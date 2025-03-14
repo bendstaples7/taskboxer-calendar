@@ -45,8 +45,8 @@ const AnimatedPanel: React.FC<AnimatedPanelProps> = ({
         </Button>
       </div>
       <div className={cn(
-        "flex-1 transition-all duration-300",
-        expanded ? "opacity-100 overflow-auto" : "opacity-0 overflow-hidden"
+        "flex-1 transition-all duration-300 overflow-auto",
+        !expanded && "max-w-full"
       )}>
         {children}
       </div>
