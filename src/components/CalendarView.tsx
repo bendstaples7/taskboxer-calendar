@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { 
   format, 
   startOfWeek, 
@@ -32,6 +32,7 @@ interface CalendarViewProps {
   onTaskClick?: (task: Task) => void;
   onDateChange?: (date: Date) => void;
   singleDayMode?: boolean;
+  minimized?: boolean;
 }
 
 const HOUR_HEIGHT = 60; // pixels per hour
@@ -45,23 +46,32 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onDropTask,
   onTaskClick,
   onDateChange,
-  singleDayMode = false
+  singleDayMode = false,
+  minimized = false
 }) => {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [currentTimePosition, setCurrentTimePosition] = useState<number>(0);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   
   // Calculate the start and end of the week/day based on the current mode
   const start = singleDayMode ? currentDate : startOfWeek(currentDate, { weekStartsOn: 0 });
   const end = singleDayMode ? currentDate : endOfWeek(currentDate, { weekStartsOn: 0 });
-  const days = singleDayMode ? [currentDate] : eachDayOfInterval({ start, end });
+  const days = minimized && !singleDayMode ? [currentDate] : singleDayMode ? [currentDate] : eachDayOfInterval({ start, end });
 
-  // Update the current time indicator
+  // Update the current time indicator and scroll position
   useEffect(() => {
     const updateTimeIndicator = () => {
       const now = new Date();
       const hours = getHours(now);
       const minutes = getMinutes(now);
-      setCurrentTimePosition(hours * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT);
+      const position = hours * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT;
+      setCurrentTimePosition(position);
+      
+      // Scroll to current time (offset by 200px to center it in viewport)
+      if (scrollAreaRef.current) {
+        const scrollPosition = Math.max(0, position - 200);
+        scrollAreaRef.current.scrollTop = scrollPosition;
+      }
     };
 
     updateTimeIndicator();
@@ -185,74 +195,103 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     );
   };
 
-  return (
-    <div className="flex flex-col h-full">
-      <div className="flex justify-between items-center mb-4">
-        <div className="text-xl font-semibold">
-          {singleDayMode 
-            ? format(currentDate, 'MMMM d, yyyy') 
-            : `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`
-          }
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={singleDayMode ? goToPreviousDay : goToPreviousWeek}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <Button 
-            size="sm" 
-            onClick={goToToday}
-          >
-            Today
-          </Button>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={singleDayMode ? goToNextDay : goToNextWeek}
-          >
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Day headers */}
-      <div className={cn(
-        "grid gap-1",
-        singleDayMode ? "grid-cols-1" : "grid-cols-7"
-      )}>
-        {days.map((day) => (
-          <div 
-            key={day.toString()} 
-            className={cn(
-              "p-2 text-center font-medium",
-              isSameDay(day, new Date()) && "bg-blue-100 rounded-t-md"
-            )}
-          >
-            <div>{format(day, 'EEE')}</div>
-            <div>{format(day, 'd')}</div>
+  const renderMinimizedCalendar = () => {
+    // For minimized view, we stack days vertically
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex justify-between items-center mb-4">
+          <div className="text-xl font-semibold">
+            {format(currentDate, 'MMMM d, yyyy')}
           </div>
-        ))}
-      </div>
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={goToPreviousDay}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={goToToday}
+            >
+              Today
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={goToNextDay}
+            >
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        
+        <div className="overflow-y-auto flex-1" ref={scrollAreaRef}>
+          <div className="pb-4 mb-4 border-b">
+            <div 
+              className={cn(
+                "p-2 text-center font-medium",
+                isSameDay(currentDate, new Date()) && "bg-blue-100 rounded-t-md"
+              )}
+            >
+              <div>{format(currentDate, 'EEE')}</div>
+              <div>{format(currentDate, 'd')}</div>
+            </div>
+            
+            <div className="relative border rounded-md mt-2 h-[1440px]">
+              {HOURS.map((hour) => (
+                <div 
+                  key={hour} 
+                  className="border-t relative"
+                  style={{ height: `${HOUR_HEIGHT}px` }}
+                  onDragOver={(e) => handleDragOver(e, currentDate, hour)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, currentDate, hour)}
+                >
+                  <div className="absolute left-0 text-xs text-gray-400 -mt-2 ml-1">
+                    {hour}:00
+                  </div>
+                </div>
+              ))}
 
-      {/* Calendar body with a single scroll area */}
-      <ScrollArea className="flex-1">
-        <div className="flex-1 h-[1440px]"> {/* 24 hours × 60px = 1440px */}
-          <div className={cn(
-            "grid gap-1 h-full",
-            singleDayMode ? "grid-cols-1" : "grid-cols-7"
-          )}>
-            {/* Day columns */}
-            {days.map((day) => (
+              {/* Current time indicator */}
+              {isSameDay(currentDate, new Date()) && (
+                <div 
+                  className="current-time-indicator"
+                  style={{ top: `${currentTimePosition}px` }}
+                />
+              )}
+
+              {/* Tasks */}
+              {getTasksForDay(currentDate).map(task => (
+                renderCalendarItem(task, true)
+              ))}
+
+              {/* Events */}
+              {getEventsForDay(currentDate).map(event => (
+                renderCalendarItem(event, false)
+              ))}
+            </div>
+          </div>
+          
+          {/* Additional days stacked vertically (only show if we want additional days) */}
+          {minimized && false && [ // Disabled for now, can be enabled if showing more days in minimized mode is desired
+            addDays(currentDate, 1),
+            addDays(currentDate, 2),
+          ].map((day) => (
+            <div key={day.toString()} className="pb-4 mb-4 border-b">
               <div 
-                key={day.toString()} 
                 className={cn(
-                  "relative border rounded-md h-full",
-                  singleDayMode && "w-full"
+                  "p-2 text-center font-medium",
+                  isSameDay(day, new Date()) && "bg-blue-100 rounded-t-md"
                 )}
               >
+                <div>{format(day, 'EEE')}</div>
+                <div>{format(day, 'd')}</div>
+              </div>
+              
+              <div className="relative border rounded-md mt-2 h-[1440px]">
                 {HOURS.map((hour) => (
                   <div 
                     key={hour} 
@@ -286,12 +325,124 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   renderCalendarItem(event, false)
                 ))}
               </div>
-            ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderRegularCalendar = () => {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex justify-between items-center mb-4">
+          <div className="text-xl font-semibold">
+            {singleDayMode 
+              ? format(currentDate, 'MMMM d, yyyy') 
+              : `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`
+            }
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={singleDayMode ? goToPreviousDay : goToPreviousWeek}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={goToToday}
+            >
+              Today
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={singleDayMode ? goToNextDay : goToNextWeek}
+            >
+              <ArrowRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
-      </ScrollArea>
-    </div>
-  );
+
+        {/* Day headers */}
+        <div className={cn(
+          "grid gap-1",
+          singleDayMode ? "grid-cols-1" : "grid-cols-7"
+        )}>
+          {days.map((day) => (
+            <div 
+              key={day.toString()} 
+              className={cn(
+                "p-2 text-center font-medium",
+                isSameDay(day, new Date()) && "bg-blue-100 rounded-t-md"
+              )}
+            >
+              <div>{format(day, 'EEE')}</div>
+              <div>{format(day, 'd')}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar body with a single scroll area */}
+        <ScrollArea className="flex-1" ref={scrollAreaRef}>
+          <div className="flex-1 h-[1440px]"> {/* 24 hours × 60px = 1440px */}
+            <div className={cn(
+              "grid gap-1 h-full",
+              singleDayMode ? "grid-cols-1" : "grid-cols-7"
+            )}>
+              {/* Day columns */}
+              {days.map((day) => (
+                <div 
+                  key={day.toString()} 
+                  className={cn(
+                    "relative border rounded-md h-full",
+                    singleDayMode && "w-full"
+                  )}
+                >
+                  {HOURS.map((hour) => (
+                    <div 
+                      key={hour} 
+                      className="border-t relative"
+                      style={{ height: `${HOUR_HEIGHT}px` }}
+                      onDragOver={(e) => handleDragOver(e, day, hour)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, day, hour)}
+                    >
+                      <div className="absolute left-0 text-xs text-gray-400 -mt-2 ml-1">
+                        {hour}:00
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Current time indicator */}
+                  {isSameDay(day, new Date()) && (
+                    <div 
+                      className="current-time-indicator"
+                      style={{ top: `${currentTimePosition}px` }}
+                    />
+                  )}
+
+                  {/* Tasks */}
+                  {getTasksForDay(day).map(task => (
+                    renderCalendarItem(task, true)
+                  ))}
+
+                  {/* Events */}
+                  {getEventsForDay(day).map(event => (
+                    renderCalendarItem(event, false)
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </ScrollArea>
+      </div>
+    );
+  };
+
+  return minimized ? renderMinimizedCalendar() : renderRegularCalendar();
 };
 
 export default CalendarView;

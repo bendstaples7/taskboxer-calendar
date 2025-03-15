@@ -507,6 +507,7 @@ const Index = () => {
                 onDropTask={handleTaskSchedule}
                 onTaskClick={handleTaskClick}
                 onDateChange={handleCalendarDateChange}
+                minimized={!calendarExpanded}
               />
             </AnimatedPanel>
             
@@ -582,3 +583,4 @@ const Index = () => {
 };
 
 export default Index;
+
