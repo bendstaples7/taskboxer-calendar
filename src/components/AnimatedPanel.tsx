@@ -25,7 +25,7 @@ const AnimatedPanel: React.FC<AnimatedPanelProps> = ({
     <div
       className={cn(
         "flex flex-col bg-white border rounded-lg overflow-hidden transition-all duration-300 ease-in-out",
-        expanded ? "flex-1" : "flex-[0.15]",
+        expanded ? "flex-1" : "w-64",
         className
       )}
     >
@@ -44,10 +44,7 @@ const AnimatedPanel: React.FC<AnimatedPanelProps> = ({
           {side === "right" && !expanded && <ChevronLeft className="h-5 w-5" />}
         </Button>
       </div>
-      <div className={cn(
-        "flex-1 transition-all duration-300 overflow-auto",
-        !expanded && "max-w-full"
-      )}>
+      <div className="flex-1 overflow-auto">
         {children}
       </div>
     </div>

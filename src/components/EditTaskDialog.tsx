@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CheckCircle, Trash } from 'lucide-react';
+import { Clock, CheckCircle, Trash, Play, Pause } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TaskTimer from './TaskTimer';
 import { format } from 'date-fns';
@@ -18,6 +18,10 @@ interface EditTaskDialogProps {
   onUpdate: (task: Task) => void;
   onComplete: () => void;
   onUnschedule: () => void;
+  onStartTimer: (taskId: string) => void;
+  onStopTimer: (taskId: string) => void;
+  onTimerComplete: (taskId: string) => void;
+  onAddTime: (taskId: string, minutes: number) => void;
   availableLabels: Label[];
 }
 
@@ -28,6 +32,10 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
   onUpdate,
   onComplete,
   onUnschedule,
+  onStartTimer,
+  onStopTimer,
+  onTimerComplete,
+  onAddTime,
   availableLabels
 }) => {
   const [title, setTitle] = useState(task.title);
@@ -60,6 +68,23 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours > 0 ? `${hours}h ` : ''}${mins > 0 ? `${mins}m` : ''}`;
+  };
+
+  const handleTimerStart = () => {
+    onStartTimer(task.id);
+  };
+
+  const handleTimerStop = () => {
+    onStopTimer(task.id);
+  };
+
+  const handleTimerComplete = () => {
+    onTimerComplete(task.id);
+    onComplete();
+  };
+
+  const handleAddTime = (minutes: number) => {
+    onAddTime(task.id, minutes);
   };
 
   return (
@@ -151,7 +176,12 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
               
               <TaskTimer
                 duration={task.estimatedTime}
-                onComplete={onComplete}
+                onComplete={handleTimerComplete}
+                onTimerStart={handleTimerStart}
+                onTimerStop={handleTimerStop}
+                onTimeAdjust={handleAddTime}
+                initialTimeLeft={task.remainingTime ? task.remainingTime * 60 : task.estimatedTime * 60}
+                expired={task.timerExpired}
               />
             </div>
           )}

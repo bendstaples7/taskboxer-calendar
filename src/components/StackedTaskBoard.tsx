@@ -3,9 +3,10 @@ import React from "react";
 import { Task, Priority } from "@/lib/types";
 import TaskCard from "./TaskCard";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface StackedTaskBoardProps {
   tasks: Task[];
@@ -13,6 +14,8 @@ interface StackedTaskBoardProps {
   onAddTask: (priority: Priority) => void;
   onDragStart: (task: Task) => void;
   minimized?: boolean;
+  collapsedSections?: string[];
+  onToggleSection?: (section: string) => void;
 }
 
 const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
@@ -21,6 +24,8 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
   onAddTask,
   onDragStart,
   minimized = false,
+  collapsedSections = [],
+  onToggleSection = () => {}
 }) => {
   const priorities: Priority[] = ["critical", "high", "medium", "low"];
   
@@ -47,28 +52,42 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
       priority === 'medium' ? 'bg-yellow-100' : 
       priority === 'high' ? 'bg-orange-100' : 
       'bg-red-100';
+    
+    const isCollapsed = collapsedSections.includes(priority);
 
     return (
-      <div key={priority} className="mb-4">
-        <div className={`p-2 ${colorClass} rounded-t-md font-medium flex justify-between items-center`}>
-          <h2>{capitalizedPriority}</h2>
-          <span className="bg-gray-100 px-2 rounded-full text-sm">{priorityTasks.length}</span>
-        </div>
-        <div className="p-2 bg-gray-50 rounded-b-md">
-          {priorityTasks.map(task => (
-            <div 
-              key={task.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, task)}
-            >
-              <TaskCard 
-                task={task} 
-                onClick={() => onTaskClick(task)}
-              />
+      <Collapsible 
+        key={priority} 
+        className="mb-4"
+        open={!isCollapsed}
+        onOpenChange={() => onToggleSection(priority)}
+      >
+        <CollapsibleTrigger className="w-full">
+          <div className={`p-2 ${colorClass} rounded-t-md font-medium flex justify-between items-center`}>
+            <h2>{capitalizedPriority}</h2>
+            <div className="flex items-center">
+              <span className="bg-gray-100 px-2 rounded-full text-sm mr-2">{priorityTasks.length}</span>
+              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="p-2 bg-gray-50 rounded-b-md">
+            {priorityTasks.map(task => (
+              <div 
+                key={task.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, task)}
+              >
+                <TaskCard 
+                  task={task} 
+                  onClick={() => onTaskClick(task)}
+                />
+              </div>
+            ))}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     );
   };
 
@@ -76,27 +95,41 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
     const scheduledTasks = getScheduledTasks();
     if (scheduledTasks.length === 0) return null;
 
+    const isCollapsed = collapsedSections.includes('scheduled');
+
     return (
-      <div key="scheduled" className="mb-4">
-        <div className="p-2 bg-purple-100 rounded-t-md font-medium flex justify-between items-center">
-          <h2>Scheduled</h2>
-          <span className="bg-gray-100 px-2 rounded-full text-sm">{scheduledTasks.length}</span>
-        </div>
-        <div className="p-2 bg-gray-50 rounded-b-md">
-          {scheduledTasks.map(task => (
-            <div 
-              key={task.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, task)}
-            >
-              <TaskCard 
-                task={task} 
-                onClick={() => onTaskClick(task)}
-              />
+      <Collapsible 
+        key="scheduled" 
+        className="mb-4"
+        open={!isCollapsed}
+        onOpenChange={() => onToggleSection('scheduled')}
+      >
+        <CollapsibleTrigger className="w-full">
+          <div className="p-2 bg-purple-100 rounded-t-md font-medium flex justify-between items-center">
+            <h2>Scheduled</h2>
+            <div className="flex items-center">
+              <span className="bg-gray-100 px-2 rounded-full text-sm mr-2">{scheduledTasks.length}</span>
+              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="p-2 bg-gray-50 rounded-b-md">
+            {scheduledTasks.map(task => (
+              <div 
+                key={task.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, task)}
+              >
+                <TaskCard 
+                  task={task} 
+                  onClick={() => onTaskClick(task)}
+                />
+              </div>
+            ))}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     );
   };
 
@@ -131,8 +164,10 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
   return (
     <ScrollArea className="h-full">
       <div className="p-4">
-        {renderScheduledSection()}
+        {/* Priority tasks first */}
         {priorities.map(priority => renderPrioritySection(priority))}
+        {/* Scheduled tasks at the bottom */}
+        {renderScheduledSection()}
         {renderAddTaskButtons()}
       </div>
     </ScrollArea>
