@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +9,8 @@ import AnimatedPanel from "@/components/AnimatedPanel";
 import AddTaskDialog from "@/components/AddTaskDialog";
 import EditTaskDialog from "@/components/EditTaskDialog";
 import ActiveTasksDropdown from "@/components/ActiveTasksDropdown";
+import GoogleCalendarConnect from "@/components/GoogleCalendarConnect";
+import { useGoogleCalendarSync } from "@/hooks/useGoogleCalendarSync";
 import { 
   Plus, 
   Calendar as CalendarIcon, 
@@ -19,7 +20,6 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { addMinutes } from "date-fns";
 
-// Mock labels
 const initialLabels: Label[] = [
   { id: uuidv4(), name: "Work", color: "#3B82F6" },
   { id: uuidv4(), name: "Personal", color: "#EC4899" },
@@ -27,7 +27,6 @@ const initialLabels: Label[] = [
   { id: uuidv4(), name: "Important", color: "#F59E0B" },
 ];
 
-// Mock tasks
 const initialTasks: Task[] = [
   {
     id: uuidv4(),
@@ -67,7 +66,6 @@ const initialTasks: Task[] = [
   },
 ];
 
-// Mock Google Calendar events
 const initialEvents: CalendarEvent[] = [
   {
     id: uuidv4(),
@@ -92,12 +90,10 @@ const initialEvents: CalendarEvent[] = [
   },
 ];
 
-// Try to load tasks from localStorage
 const loadTasksFromStorage = () => {
   try {
     const savedTasks = localStorage.getItem('shinko-tasks');
     return savedTasks ? JSON.parse(savedTasks, (key, value) => {
-      // Convert date strings back to Date objects
       if (key === 'start' || key === 'end' || key === 'timerStarted' || key === 'timerPaused') {
         return value ? new Date(value) : null;
       }
@@ -125,12 +121,20 @@ const Index = () => {
   const [collapsedSections, setCollapsedSections] = useState<string[]>([]);
   const { toast } = useToast();
 
-  // Save tasks to localStorage whenever they change
+  const { 
+    isInitialized, 
+    calendarEvents, 
+    loadEvents,
+    addTaskToCalendar,
+    updateTaskInCalendar,
+    removeTaskFromCalendar,
+    syncTasksWithCalendar
+  } = useGoogleCalendarSync();
+
   useEffect(() => {
     localStorage.setItem('shinko-tasks', JSON.stringify(tasks));
   }, [tasks]);
 
-  // Check for expired timers regularly
   useEffect(() => {
     const interval = setInterval(() => {
       setTasks(prev => prev.map(task => {
@@ -139,19 +143,17 @@ const Index = () => {
           const elapsedMs = Date.now() - startTime;
           const elapsedMinutes = elapsedMs / (1000 * 60);
           
-          // If elapsed time exceeds estimated time, mark timer as expired
           if (elapsedMinutes >= task.estimatedTime) {
             return { ...task, timerExpired: true };
           }
         }
         return task;
       }));
-    }, 10000); // Check every 10 seconds
+    }, 10000);
     
     return () => clearInterval(interval);
   }, []);
 
-  // Update active tasks list
   useEffect(() => {
     const active = tasks.filter(task => 
       task.timerStarted && !task.timerPaused && !task.completed && !task.timerExpired
@@ -159,7 +161,6 @@ const Index = () => {
     setActiveTasks(active);
   }, [tasks]);
 
-  // Check for unstarted scheduled tasks that are in the past
   useEffect(() => {
     const now = new Date();
     
@@ -170,7 +171,6 @@ const Index = () => {
         !task.completed && 
         new Date(task.scheduled.end) < now
       ) {
-        // Return task to the board if it was scheduled but never started
         return { ...task, scheduled: undefined };
       }
       return task;
@@ -189,14 +189,23 @@ const Index = () => {
     setLabels(prev => [...prev, label]);
   };
 
-  const handleTaskSchedule = (task: Task, startTime: Date) => {
+  const handleTaskSchedule = async (task: Task, startTime: Date) => {
     const endTime = addMinutes(startTime, task.estimatedTime);
+    const updatedTask = { 
+      ...task, 
+      scheduled: { start: startTime, end: endTime } 
+    };
     
-    setTasks(prev => prev.map(t => 
-      t.id === task.id 
-        ? { ...t, scheduled: { start: startTime, end: endTime } } 
-        : t
-    ));
+    if (isInitialized) {
+      const taskWithGoogleId = await addTaskToCalendar(updatedTask);
+      setTasks(prev => prev.map(t => 
+        t.id === task.id ? taskWithGoogleId : t
+      ));
+    } else {
+      setTasks(prev => prev.map(t => 
+        t.id === task.id ? updatedTask : t
+      ));
+    }
 
     toast({
       title: "Task scheduled",
@@ -204,11 +213,11 @@ const Index = () => {
     });
   };
 
-  const handleResizeTask = (taskId: string, newDuration: number) => {
+  const handleResizeTask = async (taskId: string, newDuration: number) => {
     setTasks(prev => prev.map(task => {
       if (task.id === taskId && task.scheduled) {
         const newEnd = addMinutes(new Date(task.scheduled.start), newDuration);
-        return { 
+        const updatedTask = { 
           ...task, 
           remainingTime: newDuration,
           scheduled: { 
@@ -216,15 +225,27 @@ const Index = () => {
             end: newEnd 
           } 
         };
+        
+        if (isInitialized && task.googleEventId) {
+          updateTaskInCalendar(updatedTask);
+        }
+        
+        return updatedTask;
       }
       return task;
     }));
   };
 
-  const handleTaskUnschedule = (taskId: string) => {
+  const handleTaskUnschedule = async (taskId: string) => {
+    const taskToUnschedule = tasks.find(t => t.id === taskId);
+    
+    if (taskToUnschedule && taskToUnschedule.googleEventId) {
+      await removeTaskFromCalendar(taskToUnschedule);
+    }
+    
     setTasks(prev => prev.map(t => 
       t.id === taskId 
-        ? { ...t, scheduled: undefined, timerStarted: undefined, timerPaused: undefined, timerElapsed: undefined, timerExpired: undefined } 
+        ? { ...t, scheduled: undefined, timerStarted: undefined, timerPaused: undefined, timerElapsed: undefined, timerExpired: undefined, googleEventId: undefined } 
         : t
     ));
 
@@ -234,10 +255,16 @@ const Index = () => {
     });
   };
 
-  const handleTaskComplete = (taskId: string) => {
+  const handleTaskComplete = async (taskId: string) => {
+    const taskToComplete = tasks.find(t => t.id === taskId);
+    
+    if (taskToComplete && taskToComplete.googleEventId) {
+      await removeTaskFromCalendar(taskToComplete);
+    }
+    
     setTasks(prev => prev.map(t => 
       t.id === taskId 
-        ? { ...t, completed: true, timerExpired: false } 
+        ? { ...t, completed: true, timerExpired: false, googleEventId: undefined } 
         : t
     ));
 
@@ -252,7 +279,11 @@ const Index = () => {
     setTaskDialogOpen(true);
   };
 
-  const handleUpdateTask = (updatedTask: Task) => {
+  const handleUpdateTask = async (updatedTask: Task) => {
+    if (updatedTask.scheduled && updatedTask.googleEventId && isInitialized) {
+      await updateTaskInCalendar(updatedTask);
+    }
+    
     setTasks(prev => prev.map(t => 
       t.id === updatedTask.id ? updatedTask : t
     ));
@@ -298,6 +329,16 @@ const Index = () => {
         
         if (task.scheduled) {
           newEnd = addMinutes(new Date(task.scheduled.start), newEstimatedTime);
+          
+          if (isInitialized && task.googleEventId) {
+            const updatedTask = { 
+              ...task, 
+              estimatedTime: newEstimatedTime,
+              timerExpired: false,
+              scheduled: { ...task.scheduled, end: newEnd } 
+            };
+            updateTaskInCalendar(updatedTask);
+          }
         }
         
         return { 
@@ -332,6 +373,17 @@ const Index = () => {
         ? prev.filter(s => s !== section) 
         : [...prev, section]
     );
+  };
+
+  const handleGoogleCalendarEvents = (googleEvents: CalendarEvent[]) => {
+    const nonGoogleEvents = events.filter(event => !event.isGoogleEvent);
+    setEvents([...nonGoogleEvents, ...googleEvents]);
+  };
+
+  const handleCalendarDateChange = (date: Date) => {
+    if (isInitialized) {
+      loadEvents(date);
+    }
   };
 
   return (
@@ -382,6 +434,8 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <GoogleCalendarConnect onEventsLoaded={handleGoogleCalendarEvents} />
+            
             {activeTasks.length > 0 && (
               <ActiveTasksDropdown 
                 activeTasks={activeTasks}
@@ -414,6 +468,7 @@ const Index = () => {
                   onTaskComplete={handleTaskComplete}
                   onDropTask={handleTaskSchedule}
                   onTaskClick={handleTaskClick}
+                  onDateChange={handleCalendarDateChange}
                 />
               </div>
             </div>
@@ -451,6 +506,7 @@ const Index = () => {
                 onTaskComplete={handleTaskComplete}
                 onDropTask={handleTaskSchedule}
                 onTaskClick={handleTaskClick}
+                onDateChange={handleCalendarDateChange}
               />
             </AnimatedPanel>
             

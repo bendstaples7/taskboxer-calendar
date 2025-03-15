@@ -25,6 +25,8 @@ export interface Task {
   timerElapsed?: number; // Total elapsed time in minutes
   timerExpired?: boolean; // Whether the timer has expired
   remainingTime?: number; // Remaining time in minutes (for partially completed tasks)
+  // Google Calendar integration
+  googleEventId?: string; // ID of the corresponding Google Calendar event
 }
 
 export interface CalendarEvent {
@@ -33,6 +35,7 @@ export interface CalendarEvent {
   start: Date;
   end: Date;
   isGoogleEvent: boolean;
+  googleEventId?: string; // ID for synchronization
 }
 
 export interface TaskSection {

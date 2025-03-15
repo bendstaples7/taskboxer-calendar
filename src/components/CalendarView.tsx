@@ -30,6 +30,7 @@ interface CalendarViewProps {
   onTaskComplete: (taskId: string) => void;
   onDropTask: (task: Task, startTime: Date) => void;
   onTaskClick?: (task: Task) => void;
+  onDateChange?: (date: Date) => void;
   singleDayMode?: boolean;
 }
 
@@ -43,6 +44,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onTaskComplete,
   onDropTask,
   onTaskClick,
+  onDateChange,
   singleDayMode = false
 }) => {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -67,6 +69,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     
     return () => clearInterval(interval);
   }, []);
+
+  // Notify parent component when date changes
+  useEffect(() => {
+    if (onDateChange) {
+      onDateChange(currentDate);
+    }
+  }, [currentDate, onDateChange]);
 
   const goToPreviousDay = () => {
     setCurrentDate(prev => addDays(prev, -1));
