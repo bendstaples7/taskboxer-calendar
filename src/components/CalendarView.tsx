@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from "react";
 import { 
   format, 
@@ -76,6 +75,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
     updateTimeIndicator();
     const interval = setInterval(updateTimeIndicator, 60000); // update every minute
+    
+    // Scroll to current time on initial render
+    setTimeout(updateTimeIndicator, 100);
     
     return () => clearInterval(interval);
   }, []);
@@ -179,6 +181,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         style={{
           top: `${top}px`,
           height: `${height}px`,
+          zIndex: 1, // Ensure calendar items are behind time labels
         }}
         onClick={isTask && onTaskClick ? () => onTaskClick(item as Task) : undefined}
       >
@@ -249,7 +252,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, currentDate, hour)}
                 >
-                  <div className="absolute left-0 text-xs text-gray-400 -mt-2 ml-1">
+                  <div className="absolute left-0 text-xs text-gray-400 -mt-2 ml-1" style={{ zIndex: 2 }}>
                     {hour}:00
                   </div>
                 </div>
@@ -259,7 +262,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               {isSameDay(currentDate, new Date()) && (
                 <div 
                   className="current-time-indicator"
-                  style={{ top: `${currentTimePosition}px` }}
+                  style={{ top: `${currentTimePosition}px`, zIndex: 3 }}
                 />
               )}
 
@@ -301,7 +304,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, day, hour)}
                   >
-                    <div className="absolute left-0 text-xs text-gray-400 -mt-2 ml-1">
+                    <div className="absolute left-0 text-xs text-gray-400 -mt-2 ml-1" style={{ zIndex: 2 }}>
                       {hour}:00
                     </div>
                   </div>
@@ -311,7 +314,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 {isSameDay(day, new Date()) && (
                   <div 
                     className="current-time-indicator"
-                    style={{ top: `${currentTimePosition}px` }}
+                    style={{ top: `${currentTimePosition}px`, zIndex: 3 }}
                   />
                 )}
 
@@ -410,7 +413,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, day, hour)}
                     >
-                      <div className="absolute left-0 text-xs text-gray-400 -mt-2 ml-1">
+                      <div className="absolute left-0 text-xs text-gray-400 -mt-2 ml-1" style={{ zIndex: 2 }}>
                         {hour}:00
                       </div>
                     </div>
@@ -420,7 +423,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   {isSameDay(day, new Date()) && (
                     <div 
                       className="current-time-indicator"
-                      style={{ top: `${currentTimePosition}px` }}
+                      style={{ top: `${currentTimePosition}px`, zIndex: 3 }}
                     />
                   )}
 

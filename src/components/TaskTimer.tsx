@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Play, Pause, RotateCcw, CheckCircle, Plus, Minus } from "lucide-react";
+import { Play, Pause, RotateCcw, CheckCircle, Plus, Minus, Clock, Timer } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 
@@ -157,19 +157,25 @@ const TaskTimer: React.FC<TaskTimerProps> = ({
       ) : (
         <>
           <div className="flex justify-between items-center">
-            <div className="text-xl font-mono">{formatTime(timeLeft)}</div>
+            <div className={`text-xl font-mono flex items-center ${isRunning ? 'text-purple-600' : ''}`}>
+              {isRunning && <Timer className="h-4 w-4 mr-2 animate-pulse text-purple-600" />}
+              {formatTime(timeLeft)}
+            </div>
             <div className="flex gap-2">
               <Button 
                 size="sm" 
-                variant="outline" 
+                variant={isRunning ? "default" : "outline"}
+                className={isRunning ? "bg-purple-600 hover:bg-purple-700" : ""}
                 onClick={toggleTimer}
               >
                 {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                {isRunning ? "Pause" : "Start"}
               </Button>
               <Button 
                 size="sm" 
                 variant="outline" 
                 onClick={resetTimer}
+                disabled={timeLeft === duration * 60}
               >
                 <RotateCcw className="h-4 w-4" />
               </Button>
@@ -182,7 +188,19 @@ const TaskTimer: React.FC<TaskTimerProps> = ({
               </Button>
             </div>
           </div>
-          <Progress value={progress} className="h-2" />
+          <Progress 
+            value={progress} 
+            className={`h-2 ${isRunning ? 'animate-pulse' : ''}`}
+            style={{
+              background: isRunning ? '#e9d5ff' : '', // Light purple when active
+              '--progress-color': isRunning ? '#9333ea' : '' // Darker purple for progress bar
+            } as React.CSSProperties}
+          />
+          {isRunning && (
+            <div className="text-xs text-center text-purple-600 animate-pulse mt-1">
+              Timer running...
+            </div>
+          )}
         </>
       )}
     </div>
