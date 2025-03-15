@@ -295,12 +295,53 @@ const Index = () => {
   };
 
   const handleStartTimer = (taskId: string) => {
-    setTasks(prev => prev.map(task => {
-      if (task.id === taskId) {
-        return { ...task, timerStarted: new Date(), timerPaused: undefined };
+    const taskToStart = tasks.find(t => t.id === taskId);
+    
+    if (taskToStart) {
+      const currentTime = new Date();
+      const endTime = addMinutes(currentTime, taskToStart.estimatedTime);
+      
+      // If the task is not already scheduled, schedule it now
+      if (!taskToStart.scheduled) {
+        const updatedTask = { 
+          ...taskToStart, 
+          scheduled: { 
+            start: currentTime, 
+            end: endTime 
+          },
+          timerStarted: currentTime,
+          timerPaused: undefined
+        };
+        
+        // If connected to Google Calendar, add to calendar
+        if (isInitialized) {
+          addTaskToCalendar(updatedTask).then(taskWithGoogleId => {
+            setTasks(prev => prev.map(t => 
+              t.id === taskId ? taskWithGoogleId : t
+            ));
+          });
+        } else {
+          setTasks(prev => prev.map(t => 
+            t.id === taskId ? updatedTask : t
+          ));
+        }
+        
+        toast({
+          title: "Task started",
+          description: `"${taskToStart.title}" has been scheduled and started.`,
+        });
+        
+        return;
       }
-      return task;
-    }));
+      
+      // If already scheduled, just start the timer
+      setTasks(prev => prev.map(task => {
+        if (task.id === taskId) {
+          return { ...task, timerStarted: new Date(), timerPaused: undefined };
+        }
+        return task;
+      }));
+    }
   };
 
   const handleStopTimer = (taskId: string) => {
@@ -583,4 +624,3 @@ const Index = () => {
 };
 
 export default Index;
-

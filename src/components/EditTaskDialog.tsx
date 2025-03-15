@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CheckCircle, Trash, Play, Pause } from 'lucide-react';
+import { Clock, CheckCircle, Calendar, Play, Pause, SignalLow, SignalMedium, SignalHigh, Flame } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TaskTimer from './TaskTimer';
 import { format } from 'date-fns';
@@ -87,9 +87,24 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
     onAddTime(task.id, minutes);
   };
 
+  const getPriorityIcon = (priority: Priority) => {
+    switch (priority) {
+      case 'low':
+        return <SignalLow className="h-4 w-4 text-blue-500" />;
+      case 'medium':
+        return <SignalMedium className="h-4 w-4 text-green-500" />;
+      case 'high':
+        return <SignalHigh className="h-4 w-4 text-orange-500" />;
+      case 'critical':
+        return <Flame className="h-4 w-4 text-red-500" />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Task</DialogTitle>
         </DialogHeader>
@@ -121,13 +136,40 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
               onValueChange={(value: Priority) => setPriority(value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select priority" />
+                <SelectValue placeholder="Select priority">
+                  {priority && (
+                    <div className="flex items-center gap-2">
+                      {getPriorityIcon(priority)}
+                      <span className="capitalize">{priority}</span>
+                    </div>
+                  )}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="critical">Critical</SelectItem>
+                <SelectItem value="low">
+                  <div className="flex items-center gap-2">
+                    <SignalLow className="h-4 w-4 text-blue-500" />
+                    <span>Low</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="medium">
+                  <div className="flex items-center gap-2">
+                    <SignalMedium className="h-4 w-4 text-green-500" />
+                    <span>Medium</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="high">
+                  <div className="flex items-center gap-2">
+                    <SignalHigh className="h-4 w-4 text-orange-500" />
+                    <span>High</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="critical">
+                  <div className="flex items-center gap-2">
+                    <Flame className="h-4 w-4 text-red-500" />
+                    <span>Critical</span>
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -166,7 +208,7 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
             </div>
           </div>
           
-          {task.scheduled && (
+          {task.scheduled ? (
             <div className="space-y-2">
               <label className="text-sm font-medium">Scheduled Time</label>
               <div className="text-sm bg-gray-50 p-2 rounded border">
@@ -183,6 +225,20 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
                 initialTimeLeft={task.remainingTime ? task.remainingTime * 60 : task.estimatedTime * 60}
                 expired={task.timerExpired}
               />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Button 
+                className="w-full bg-purple-600 hover:bg-purple-700"
+                onClick={handleTimerStart}
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                <Play className="h-4 w-4 mr-1" />
+                Start Task Now
+              </Button>
+              <p className="text-xs text-gray-500">
+                This will schedule the task to start now on the calendar.
+              </p>
             </div>
           )}
         </div>
