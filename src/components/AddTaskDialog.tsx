@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ interface AddTaskDialogProps {
   onAddTask: (task: Task) => void;
   availableLabels: TaskLabel[];
   onAddLabel: (label: TaskLabel) => void;
+  initialDuration?: number;
 }
 
 const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
@@ -26,7 +27,8 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
   onOpenChange,
   onAddTask,
   availableLabels,
-  onAddLabel
+  onAddLabel,
+  initialDuration
 }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -37,6 +39,21 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
   const [newLabelName, setNewLabelName] = useState("");
   const [newLabelColor, setNewLabelColor] = useState("#3B82F6");
   const [showLabelForm, setShowLabelForm] = useState(false);
+
+  // Set initial duration if provided
+  useEffect(() => {
+    if (initialDuration) {
+      const hours = Math.floor(initialDuration / 60);
+      const minutes = initialDuration % 60;
+      setEstimatedHours(hours);
+      setEstimatedMinutes(minutes);
+    }
+  }, [initialDuration]);
+
+  // Reset priority when initialPriority changes
+  useEffect(() => {
+    setPriority(initialPriority);
+  }, [initialPriority]);
 
   const resetForm = () => {
     setTitle("");
@@ -70,6 +87,13 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
     onOpenChange(false);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleAddTask();
+    }
+  };
+
   const toggleLabel = (labelId: string) => {
     setSelectedLabels(prev => 
       prev.includes(labelId) 
@@ -99,7 +123,7 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
       if (!open) resetForm();
       onOpenChange(open);
     }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onKeyDown={handleKeyDown}>
         <DialogHeader>
           <DialogTitle>Add New Task</DialogTitle>
         </DialogHeader>
@@ -111,6 +135,7 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Task title"
+              autoFocus
             />
           </div>
           <div className="grid gap-2">

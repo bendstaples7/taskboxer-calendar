@@ -1,97 +1,81 @@
 
-/* Calendar and Task Board Styles */
+/* ... keep existing code */
+
+/* Calendar UI Improvements */
 .current-time-indicator {
   position: absolute;
-  height: 2px;
+  left: 0;
   width: 100%;
-  background-color: #ef4444;
-  z-index: 15;
+  height: 2px;
+  background-color: red;
+  z-index: 10;
 }
 
-.current-time-indicator::after {
+.current-time-indicator::before {
   content: '';
   position: absolute;
   left: 0;
   top: -4px;
   width: 10px;
   height: 10px;
+  background-color: red;
   border-radius: 50%;
-  background-color: #ef4444;
-}
-
-.droppable-active {
-  background-color: rgba(155, 135, 245, 0.1);
-  transition: all 0.2s;
-}
-
-.trash-active {
-  transform: scale(1.2);
-  box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
 }
 
 .calendar-task {
-  transition: all 0.2s;
-  border: 1px solid #e5e7eb;
-  background-color: #f9fafb;
+  transition: all 0.2s ease;
+  border: 1px solid;
 }
 
 .calendar-task:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 10 !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 20;
 }
 
-.calendar-task .resize-handle {
+.calendar-event {
+  background-color: #e2e8f0;
+  border: 1px solid #cbd5e1;
+}
+
+.resize-handle {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 5px;
+  height: 4px;
+  background-color: rgba(0, 0, 0, 0.1);
   cursor: ns-resize;
-  background-color: transparent;
-  transition: background-color 0.2s;
+  border-bottom-left-radius: 3px;
+  border-bottom-right-radius: 3px;
 }
 
-.calendar-task:hover .resize-handle {
-  background-color: rgba(155, 135, 245, 0.5);
+.resize-handle:hover,
+.calendar-task.resize-active .resize-handle {
+  background-color: rgba(0, 0, 0, 0.2);
+  height: 6px;
 }
 
-.resize-active {
-  z-index: 50 !important;
-  box-shadow: 0 0 10px rgba(155, 135, 245, 0.5);
+.droppable-active {
+  background-color: rgba(155, 135, 245, 0.1);
 }
 
-.calendar-drop-indicator {
+.trash-active {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+}
+
+.create-task-indicator {
   position: absolute;
-  height: 2px;
-  background-color: #9b87f5;
-  width: calc(100% - 10px);
-  z-index: 100;
+  background-color: rgba(155, 135, 245, 0.3);
+  border: 2px dashed #9b87f5;
+  border-radius: 4px;
+  z-index: 50;
   pointer-events: none;
-  left: 5px;
-  box-shadow: 0 0 5px rgba(155, 135, 245, 0.5);
 }
 
-.smooth-scroll {
-  scroll-behavior: smooth;
-}
-
-/* Responsive adjustments */
-@media (max-width: 640px) {
-  .panel-handle {
-    display: none;
-  }
-}
-
-/* Make sure task animations are smooth */
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+/* Add space for time markers to prevent overlap */
+.calendar-container .border-t .text-xs.text-gray-400 {
+  background-color: white;
+  z-index: 5;
+  padding: 0 4px;
 }

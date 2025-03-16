@@ -20,6 +20,7 @@ interface TaskBoardSectionProps {
   onDrop: (e: React.DragEvent, priority: Priority, index?: number) => void;
   dragOverPriority: Priority | null;
   dragOverIndex: number | null;
+  minimized?: boolean;
 }
 
 const TaskBoardSection: React.FC<TaskBoardSectionProps> = ({
@@ -35,7 +36,8 @@ const TaskBoardSection: React.FC<TaskBoardSectionProps> = ({
   onDragLeave,
   onDrop,
   dragOverPriority,
-  dragOverIndex
+  dragOverIndex,
+  minimized = false
 }) => {
   const priorityBackgroundColor = 
     priority === 'low' ? 'bg-blue-100' : 
@@ -59,7 +61,7 @@ const TaskBoardSection: React.FC<TaskBoardSectionProps> = ({
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div 
-          className="flex-1 p-2 bg-gray-50 rounded-b-md overflow-y-auto min-h-[50px]"
+          className={`p-2 bg-gray-50 rounded-b-md overflow-y-auto min-h-[50px] ${minimized ? '' : 'flex-1'}`}
           onDragOver={(e) => onDragOver(e, priority)}
           onDragLeave={onDragLeave}
           onDrop={(e) => onDrop(e, priority)}

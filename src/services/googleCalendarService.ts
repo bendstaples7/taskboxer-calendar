@@ -1,4 +1,3 @@
-
 import { Task, CalendarEvent } from "@/lib/types";
 import { addMinutes } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -20,32 +19,36 @@ export const useGoogleCalendarService = () => {
   // Initialize the Google API client
   const initializeGoogleApi = async (): Promise<boolean> => {
     try {
-      if (!window.gapi) {
-        console.error("Google API not loaded");
-        return false;
-      }
-      
-      await new Promise<void>((resolve) => {
-        window.gapi.load('client:auth2', resolve);
+      // Load the Google API client library
+      await new Promise<void>((resolve, reject) => {
+        window.gapi.load('client:auth2', {
+          callback: () => resolve(),
+          onerror: (error: any) => reject(error),
+        });
       });
-      
+
+      // Initialize the Google API client with your API key and OAuth client ID
       await window.gapi.client.init({
         apiKey: API_KEY,
         clientId: CLIENT_ID,
-        scope: SCOPES.join(' '),
         discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'],
-        // Add redirect_uri for the current domain
-        redirect_uri: window.location.origin
+        scope: 'https://www.googleapis.com/auth/calendar',
       });
-      
+
       return true;
     } catch (error) {
-      console.error("Error initializing Google API:", error);
-      toast({
-        title: "Error connecting to Google Calendar",
-        description: "Please try again later or check your Google API settings.",
-        variant: "destructive",
-      });
+      console.error('Error initializing Google API:', error);
+      
+      // Provide specific error handling advice
+      const errorObj = error as any;
+      if (errorObj?.error === 'idpiframe_initialization_failed') {
+        console.error('Google Calendar Setup Error: This domain has not been registered in the Google Cloud Console.');
+        console.error('Please add this domain to your Google API allowed origins in the Google Cloud Console.');
+      } else if (errorObj?.error?.code === 400 && errorObj?.error?.message?.includes('API key not valid')) {
+        console.error('Google Calendar Setup Error: Invalid API key.');
+        console.error('Please check your API key in the Google Cloud Console.');
+      }
+      
       return false;
     }
   };
