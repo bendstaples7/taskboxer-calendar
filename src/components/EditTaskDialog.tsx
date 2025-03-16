@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CheckCircle, Calendar, Play, Pause, Stop, SignalLow, SignalMedium, SignalHigh, Flame } from 'lucide-react';
+import { Clock, CheckCircle, Calendar, Play, Pause, Square, SignalLow, SignalMedium, SignalHigh, Flame } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TaskTimer from './TaskTimer';
 import { format } from 'date-fns';
@@ -255,7 +255,7 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
                   className="w-full bg-orange-500 hover:bg-orange-600"
                   onClick={handleTimerStop}
                 >
-                  <Stop className="h-4 w-4 mr-2" />
+                  <Pause className="h-4 w-4 mr-2" />
                   Pause Timer
                 </Button>
               )}
