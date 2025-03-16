@@ -270,8 +270,12 @@ export const updateTaskPositions = async (tasks: Task[], userId = DEFAULT_USER_I
   try {
     const updates = tasks.map(task => ({
       id: task.id,
+      title: task.title,
       position: task.position || 0,
-      user_id: userId
+      user_id: userId,
+      priority: task.priority,
+      description: task.description,
+      status: task.completed ? 'completed' : task.scheduled ? 'scheduled' : 'unscheduled'
     }));
 
     const { error } = await supabase

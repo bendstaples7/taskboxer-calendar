@@ -33,6 +33,7 @@ interface CalendarViewProps {
   onDateChange?: (date: Date) => void;
   singleDayMode?: boolean;
   minimized?: boolean;
+  scrollToCurrentTime?: boolean;
 }
 
 const HOUR_HEIGHT = 60; // pixels per hour
