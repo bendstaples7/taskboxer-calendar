@@ -14,7 +14,7 @@ interface TaskBoardSectionProps {
   onToggle: () => void;
   onTaskClick: (task: Task) => void;
   onAddTask: () => void;
-  onDragStart: (task: Task) => void;
+  onDragStart: (e: React.DragEvent, task: Task) => void;
   onDragOver: (e: React.DragEvent, priority: Priority, index?: number) => void;
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent, priority: Priority, index?: number) => void;

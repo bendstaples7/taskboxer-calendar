@@ -73,6 +73,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
       document.body.removeChild(dragPreview);
     }, 0);
     
+    // Call the parent component's onDragStart with just the task
     onDragStart(task);
   };
 

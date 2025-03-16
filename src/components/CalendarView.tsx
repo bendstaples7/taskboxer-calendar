@@ -176,10 +176,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const goToToday = () => {
     setCurrentDate(new Date());
     // Force scroll to current time when going to today
-    scrollToCurrentTime();
+    handleScrollToCurrentTime();
   };
 
-  const scrollToCurrentTime = () => {
+  const handleScrollToCurrentTime = () => {
     if (scrollAreaRef.current) {
       const now = new Date();
       const hours = getHours(now);
@@ -571,7 +571,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         {/* Resize handle for tasks */}
         {isTask && (
           <div 
-            className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize"
+            className="resize-handle"
             onMouseDown={(e) => handleResizeStart(e, (item as Task).id)}
             title="Resize task"
           />
@@ -817,7 +817,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   {/* Events */}
                   {getEventsForDay(day).map((event, index) => (
                     renderCalendarItem(event, false, index, 1)
-                  ))}
+                  )}
                 </div>
               ))}
             </div>
