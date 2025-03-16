@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from "react";
 import { 
   format, 
@@ -817,5 +818,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   {getEventsForDay(day).map((event, index) => (
                     renderCalendarItem(event, false, index, 1)
                   ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </ScrollArea>
+        
+        {renderPriorityDropZones()}
+        {renderTrashBin()}
+      </div>
+    );
+  };
 
+  return minimized ? renderMinimizedCalendar() : renderRegularCalendar();
+};
 
+export default CalendarView;
