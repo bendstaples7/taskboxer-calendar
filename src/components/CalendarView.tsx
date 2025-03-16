@@ -233,7 +233,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       const hourOffset = Math.floor(offsetY / HOUR_HEIGHT);
       const minuteOffset = (offsetY % HOUR_HEIGHT) / HOUR_HEIGHT * 60;
       
-      // Position indicator at the mouse position
+      // Position indicator at the mouse position - Fix: Add HTMLElement type assertion
       (dropIndicator as HTMLElement).style.top = `${Math.floor(hour * HOUR_HEIGHT + (offsetY % HOUR_HEIGHT))}px`;
     }
   };
