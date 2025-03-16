@@ -217,13 +217,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     if (!dropIndicator && calendarContainer) {
       dropIndicator = document.createElement('div');
       dropIndicator.className = 'calendar-drop-indicator';
-      dropIndicator.style.position = 'absolute';
-      dropIndicator.style.height = '2px';
-      dropIndicator.style.backgroundColor = '#9b87f5';
-      dropIndicator.style.width = 'calc(100% - 10px)';
-      dropIndicator.style.zIndex = '100';
-      dropIndicator.style.pointerEvents = 'none';
-      dropIndicator.style.left = '5px';
+      
+      // Type assertion for all style property accesses
+      const dropIndicatorElement = dropIndicator as HTMLElement;
+      dropIndicatorElement.style.position = 'absolute';
+      dropIndicatorElement.style.height = '2px';
+      dropIndicatorElement.style.backgroundColor = '#9b87f5';
+      dropIndicatorElement.style.width = 'calc(100% - 10px)';
+      dropIndicatorElement.style.zIndex = '100';
+      dropIndicatorElement.style.pointerEvents = 'none';
+      dropIndicatorElement.style.left = '5px';
+      
       calendarContainer.appendChild(dropIndicator);
     }
     
