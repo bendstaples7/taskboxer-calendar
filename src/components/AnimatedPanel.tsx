@@ -1,50 +1,47 @@
 
-import React from "react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import React from 'react';
+import { cn } from '@/lib/utils';
+import { ChevronRight, ChevronLeft } from 'lucide-react';
 
 interface AnimatedPanelProps {
-  children: React.ReactNode;
   title: string;
-  side: "left" | "right";
+  children: React.ReactNode;
   expanded: boolean;
   onToggle: () => void;
-  className?: string;
+  side: 'left' | 'right';
 }
 
 const AnimatedPanel: React.FC<AnimatedPanelProps> = ({
-  children,
   title,
-  side,
+  children,
   expanded,
   onToggle,
-  className
+  side,
 }) => {
   return (
     <div
       className={cn(
-        "flex flex-col bg-white border rounded-lg overflow-hidden transition-all duration-300 ease-in-out",
-        expanded ? "flex-1" : "w-64",
-        className
+        'flex flex-col border rounded-lg shadow-sm bg-white overflow-hidden transition-all ease-in-out duration-300 panel-slide-in',
+        expanded ? 'w-full' : 'w-80',
+        side === 'left' ? 'order-first' : 'order-last'
       )}
     >
-      <div className="flex justify-between items-center p-4 border-b">
-        <h2 className="text-xl font-semibold flex-1 text-center">{title}</h2>
-        <Button
-          variant="ghost"
-          size="sm"
+      <div className="p-3 border-b flex items-center justify-between">
+        <h2 className="font-medium">{title}</h2>
+        <button
           onClick={onToggle}
-          className="panel-handle rounded-full hover:bg-blue-100"
-          aria-label={expanded ? `Collapse ${title}` : `Expand ${title}`}
+          className={cn(
+            'p-1 rounded-full text-gray-500 hover:bg-gray-100 panel-handle',
+            side === 'left' ? 'ml-auto' : 'mr-auto'
+          )}
         >
-          {side === "left" && expanded && <ChevronLeft className="h-5 w-5" />}
-          {side === "left" && !expanded && <ChevronRight className="h-5 w-5" />}
-          {side === "right" && expanded && <ChevronRight className="h-5 w-5" />}
-          {side === "right" && !expanded && <ChevronLeft className="h-5 w-5" />}
-        </Button>
+          {expanded && side === 'left' && <ChevronRight className="h-4 w-4" />}
+          {!expanded && side === 'left' && <ChevronLeft className="h-4 w-4" />}
+          {expanded && side === 'right' && <ChevronLeft className="h-4 w-4" />}
+          {!expanded && side === 'right' && <ChevronRight className="h-4 w-4" />}
+        </button>
       </div>
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-hidden">
         {children}
       </div>
     </div>

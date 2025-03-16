@@ -54,6 +54,10 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
   const [editingTime, setEditingTime] = useState(false);
   const [editingLabels, setEditingLabels] = useState(false);
 
+  // Animation state
+  const [animationProgress, setAnimationProgress] = useState(0);
+  const isRunning = task.timerStarted && !task.timerPaused && !task.completed && !task.timerExpired;
+
   useEffect(() => {
     // Update local state when task prop changes
     setTitle(task.title);
@@ -69,6 +73,33 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
     setEditingTime(false);
     setEditingLabels(false);
   }, [task, open]);
+
+  // Task running animation
+  useEffect(() => {
+    let animationFrame: number;
+    let startTime: number;
+    
+    if (isRunning && open) {
+      const animate = (timestamp: number) => {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        
+        // Animation cycle of 2 seconds
+        const progress = (elapsed % 2000) / 2000;
+        setAnimationProgress(progress);
+        
+        animationFrame = requestAnimationFrame(animate);
+      };
+      
+      animationFrame = requestAnimationFrame(animate);
+    }
+    
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [isRunning, open]);
 
   const handleSave = () => {
     onUpdate({
@@ -145,9 +176,21 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
     }
   };
 
+  // Calculate animation properties
+  const animationBorderWidth = isRunning ? 2 + Math.sin(animationProgress * Math.PI * 2) * 1 : 0;
+  const animationGlow = isRunning ? 5 + Math.sin(animationProgress * Math.PI * 2) * 3 : 0;
+  const animationColor = `rgba(155, 135, 245, ${isRunning ? 0.7 + Math.sin(animationProgress * Math.PI * 2) * 0.3 : 0})`;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden">
+      <DialogContent 
+        className="sm:max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden"
+        style={{
+          boxShadow: isRunning ? `0 0 ${animationGlow}px ${animationColor}` : undefined,
+          border: isRunning ? `${animationBorderWidth}px solid ${animationColor}` : undefined,
+          transition: 'box-shadow 0.3s ease-in-out, border 0.3s ease-in-out'
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Task Details</DialogTitle>
         </DialogHeader>

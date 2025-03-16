@@ -12,6 +12,7 @@ interface TaskBoardProps {
   onAddTask: (priority: Priority) => void;
   onDragStart: (task: Task) => void;
   onTaskMove?: (taskId: string, newPriority: Priority, newPosition?: number) => void;
+  onTaskDragToCalendar?: (task: Task, startTime: Date) => void;
   collapsedSections?: string[];
   onToggleSection?: (section: string) => void;
 }
@@ -22,6 +23,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
   onAddTask,
   onDragStart,
   onTaskMove,
+  onTaskDragToCalendar,
   collapsedSections = [],
   onToggleSection = () => {},
 }) => {
@@ -46,6 +48,25 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
   const handleDragStart = (e: React.DragEvent, task: Task) => {
     e.dataTransfer.setData("application/json", JSON.stringify(task));
     e.dataTransfer.setData("taskId", task.id);
+    e.dataTransfer.setData("from", "taskboard");
+    e.dataTransfer.effectAllowed = "move";
+    
+    // Create a ghost image for drag preview
+    const dragPreview = document.createElement("div");
+    dragPreview.className = "task-card-preview";
+    dragPreview.innerHTML = `<div class="p-2 bg-white border rounded shadow">${task.title}</div>`;
+    document.body.appendChild(dragPreview);
+    dragPreview.style.position = "absolute";
+    dragPreview.style.top = "-1000px";
+    dragPreview.style.opacity = "0.8";
+    
+    e.dataTransfer.setDragImage(dragPreview, 0, 0);
+    
+    // Remove the ghost element after a delay
+    setTimeout(() => {
+      document.body.removeChild(dragPreview);
+    }, 0);
+    
     onDragStart(task);
   };
 
@@ -54,6 +75,10 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
     e.currentTarget.classList.add('droppable-active');
     setDragOverPriority(priority);
     setDragOverIndex(index !== undefined ? index : null);
+    
+    // Show a drop indicator
+    const dropIndicator = document.createElement('div');
+    dropIndicator.className = 'drop-indicator';
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
@@ -70,6 +95,18 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
     
     try {
       const taskId = e.dataTransfer.getData("taskId");
+      const fromSource = e.dataTransfer.getData("from");
+      
+      // If coming from calendar, handle differently
+      if (fromSource === "calendar" && onTaskMove) {
+        const taskData = e.dataTransfer.getData("application/json");
+        if (taskData) {
+          const task = JSON.parse(taskData) as Task;
+          onTaskMove(task.id, priority, dropIndex);
+        }
+        return;
+      }
+      
       if (taskId && onTaskMove) {
         onTaskMove(taskId, priority, dropIndex);
       }
@@ -124,6 +161,9 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
                     task={task} 
                     onClick={() => onTaskClick(task)}
                   />
+                  {dragOverPriority === priority && dragOverIndex === index && (
+                    <div className="absolute w-full h-0.5 top-0 bg-purple-500 rounded"></div>
+                  )}
                 </div>
               ))}
               <Button 

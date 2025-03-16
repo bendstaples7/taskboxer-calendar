@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -29,7 +28,7 @@ import {
   updateTaskPositions 
 } from "@/services/taskService";
 
-// Set document title
+// Set document title to match the app name
 document.title = "shinkō";
 
 const Index = () => {
@@ -502,11 +501,25 @@ const Index = () => {
   const toggleCalendarExpanded = () => {
     setCalendarExpanded(prev => !prev);
     setTaskboardExpanded(prev => !prev);
+    
+    // Sync the view mode with panel state
+    if (!calendarExpanded) {
+      setViewMode('calendar');
+    } else {
+      setViewMode('taskboard');
+    }
   };
 
   const toggleTaskboardExpanded = () => {
     setTaskboardExpanded(prev => !prev);
     setCalendarExpanded(prev => !prev);
+    
+    // Sync the view mode with panel state
+    if (!taskboardExpanded) {
+      setViewMode('taskboard');
+    } else {
+      setViewMode('calendar');
+    }
   };
 
   const toggleSection = (section: string) => {
@@ -534,7 +547,7 @@ const Index = () => {
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
             <h1 className="text-2xl font-bold flex items-center font-['Noto_Sans_JP',_sans-serif]">
-              <img src="/lovable-uploads/f43f9967-69ed-4047-bfc3-f619d50d3d40.png" alt="Shinko Logo" className="h-10 w-auto" />
+              <img src="/lovable-uploads/f43f9967-69ed-4047-bfc3-f619d50d3d40.png" alt="Shinko Logo" className="h-12 w-auto" />
             </h1>
             <div className="flex gap-2">
               <Button 
@@ -607,6 +620,7 @@ const Index = () => {
               onDateChange={handleCalendarDateChange}
               minimized={!calendarExpanded}
               scrollToCurrentTime={true}
+              onTaskDragToBoard={handleTaskMove}
             />
           </AnimatedPanel>
           
@@ -626,6 +640,7 @@ const Index = () => {
                 }}
                 onDragStart={setDraggingTask}
                 onTaskMove={handleTaskMove}
+                onTaskDragToCalendar={handleTaskSchedule}
               />
             ) : (
               <StackedTaskBoard

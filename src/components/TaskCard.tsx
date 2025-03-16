@@ -35,6 +35,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick }) => {
   };
 
   const showRemainingTime = task.timerStarted && !task.completed && (task.remainingTime !== undefined);
+  
+  const isRunning = task.timerStarted && !task.timerPaused && !task.completed && !task.timerExpired;
 
   return (
     <Card 
@@ -46,7 +48,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick }) => {
         task.priority === "medium" && "priority-medium",
         task.priority === "high" && "priority-high",
         task.priority === "critical" && "priority-critical",
-        task.timerStarted && !task.timerPaused && !task.completed && "border border-purple-500 shadow-md",
+        isRunning && "border border-purple-500 shadow-md",
         task.completed && "border border-green-500 bg-green-50 opacity-80"
       )}
       onClick={onClick}
@@ -89,12 +91,12 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick }) => {
           <Clock className="h-3 w-3" />
           <span>{formatTime(task.estimatedTime)}</span>
         </div>
-        {task.scheduled && (
+        {task.scheduled && !isRunning && (
           <Badge variant="outline" className="text-xs">
             Scheduled
           </Badge>
         )}
-        {task.timerStarted && !task.timerPaused && !task.completed && (
+        {isRunning && (
           <Badge className="text-xs bg-purple-500 animate-pulse">
             Running
           </Badge>

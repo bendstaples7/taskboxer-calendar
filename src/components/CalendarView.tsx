@@ -34,6 +34,7 @@ interface CalendarViewProps {
   singleDayMode?: boolean;
   minimized?: boolean;
   scrollToCurrentTime?: boolean;
+  onTaskDragToBoard?: (taskId: string, newPriority: string) => void;
 }
 
 const HOUR_HEIGHT = 60; // pixels per hour
@@ -48,10 +49,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onTaskClick,
   onDateChange,
   singleDayMode = false,
-  minimized = false
+  minimized = false,
+  scrollToCurrentTime = true,
+  onTaskDragToBoard
 }) => {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [currentTimePosition, setCurrentTimePosition] = useState<number>(0);
+  const [isScrolling, setIsScrolling] = useState<boolean>(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   
   // Calculate the start and end of the week/day based on the current mode
@@ -67,35 +71,54 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       const minutes = getMinutes(now);
       const position = hours * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT;
       setCurrentTimePosition(position);
-      
-      // Scroll to current time (offset by 200px to center it in viewport)
-      if (scrollAreaRef.current) {
-        const scrollPosition = Math.max(0, position - 200);
-        scrollAreaRef.current.scrollTop = scrollPosition;
-      }
     };
 
     updateTimeIndicator();
     const interval = setInterval(updateTimeIndicator, 60000); // update every minute
     
-    // Force scroll to current time on initial render with a delay to ensure DOM is ready
-    const scrollTimer = setTimeout(() => {
-      updateTimeIndicator();
-      if (scrollAreaRef.current) {
-        const now = new Date();
-        const hours = getHours(now);
-        const minutes = getMinutes(now);
-        const position = hours * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT;
-        const scrollPosition = Math.max(0, position - 200);
-        scrollAreaRef.current.scrollTop = scrollPosition;
-      }
-    }, 300);
-    
     return () => {
       clearInterval(interval);
-      clearTimeout(scrollTimer);
     };
   }, []);
+
+  // Scroll to current time on initial render and when scrollToCurrentTime changes
+  useEffect(() => {
+    if (scrollToCurrentTime && scrollAreaRef.current) {
+      const now = new Date();
+      const hours = getHours(now);
+      const minutes = getMinutes(now);
+      const position = hours * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT;
+      const scrollPosition = Math.max(0, position - 200);
+      
+      // Use smooth scrolling for a better UX
+      setIsScrolling(true);
+      
+      // Animate the scroll using requestAnimationFrame for smoother effect
+      const startTime = performance.now();
+      const startScrollTop = scrollAreaRef.current.scrollTop;
+      const duration = 800; // ms
+      
+      const animateScroll = (currentTime: number) => {
+        const elapsedTime = currentTime - startTime;
+        const progress = Math.min(elapsedTime / duration, 1);
+        const easeInOutCubic = progress < 0.5 
+          ? 4 * progress * progress * progress 
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+          
+        if (scrollAreaRef.current) {
+          scrollAreaRef.current.scrollTop = startScrollTop + (scrollPosition - startScrollTop) * easeInOutCubic;
+        }
+        
+        if (progress < 1) {
+          requestAnimationFrame(animateScroll);
+        } else {
+          setTimeout(() => setIsScrolling(false), 100);
+        }
+      };
+      
+      requestAnimationFrame(animateScroll);
+    }
+  }, [scrollToCurrentTime]);
 
   // Notify parent component when date changes
   useEffect(() => {
@@ -103,30 +126,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       onDateChange(currentDate);
     }
   }, [currentDate, onDateChange]);
-
-  // Add an additional useEffect to ensure scroll position is set after component is fully rendered
-  useEffect(() => {
-    const forceScrollToCurrentTime = () => {
-      if (scrollAreaRef.current) {
-        const now = new Date();
-        const hours = getHours(now);
-        const minutes = getMinutes(now);
-        const position = hours * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT;
-        const scrollPosition = Math.max(0, position - 200);
-        scrollAreaRef.current.scrollTop = scrollPosition;
-      }
-    };
-
-    // Try multiple times to ensure it works
-    forceScrollToCurrentTime();
-    const timer1 = setTimeout(forceScrollToCurrentTime, 500);
-    const timer2 = setTimeout(forceScrollToCurrentTime, 1000);
-    
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-    };
-  }, [scrollAreaRef.current]);
 
   const goToPreviousDay = () => {
     setCurrentDate(prev => addDays(prev, -1));
@@ -147,37 +146,162 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const goToToday = () => {
     setCurrentDate(new Date());
     // Force scroll to current time when going to today
+    if (scrollAreaRef.current) {
+      const now = new Date();
+      const hours = getHours(now);
+      const minutes = getMinutes(now);
+      const position = hours * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT;
+      const scrollPosition = Math.max(0, position - 200);
+      
+      // Use smooth scrolling
+      setIsScrolling(true);
+      
+      const startTime = performance.now();
+      const startScrollTop = scrollAreaRef.current.scrollTop;
+      const duration = 800; // ms
+      
+      const animateScroll = (currentTime: number) => {
+        const elapsedTime = currentTime - startTime;
+        const progress = Math.min(elapsedTime / duration, 1);
+        const easeInOutCubic = progress < 0.5 
+          ? 4 * progress * progress * progress 
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+          
+        if (scrollAreaRef.current) {
+          scrollAreaRef.current.scrollTop = startScrollTop + (scrollPosition - startScrollTop) * easeInOutCubic;
+        }
+        
+        if (progress < 1) {
+          requestAnimationFrame(animateScroll);
+        } else {
+          setTimeout(() => setIsScrolling(false), 100);
+        }
+      };
+      
+      requestAnimationFrame(animateScroll);
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent, task: Task) => {
+    e.dataTransfer.setData("application/json", JSON.stringify(task));
+    e.dataTransfer.setData("taskId", task.id);
+    e.dataTransfer.setData("from", "calendar");
+    e.dataTransfer.effectAllowed = "move";
+    
+    // Create a ghost image for drag preview
+    const dragPreview = document.createElement("div");
+    dragPreview.className = "task-card-preview";
+    dragPreview.innerHTML = `<div class="p-2 bg-white border rounded shadow">${task.title}</div>`;
+    document.body.appendChild(dragPreview);
+    dragPreview.style.position = "absolute";
+    dragPreview.style.top = "-1000px";
+    dragPreview.style.opacity = "0.8";
+    
+    e.dataTransfer.setDragImage(dragPreview, 0, 0);
+    
+    // Remove the ghost element after a delay
     setTimeout(() => {
-      if (scrollAreaRef.current) {
-        const now = new Date();
-        const hours = getHours(now);
-        const minutes = getMinutes(now);
-        const position = hours * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT;
-        const scrollPosition = Math.max(0, position - 200);
-        scrollAreaRef.current.scrollTop = scrollPosition;
-      }
-    }, 100);
+      document.body.removeChild(dragPreview);
+    }, 0);
   };
 
   const handleDragOver = (e: React.DragEvent, day: Date, hour: number) => {
     e.preventDefault();
     // Add visual indication for drop target
     e.currentTarget.classList.add('droppable-active');
+    
+    // Create or update drop indicator
+    const calendarContainer = e.currentTarget.closest('.calendar-container');
+    let dropIndicator = document.querySelector('.calendar-drop-indicator');
+    
+    if (!dropIndicator && calendarContainer) {
+      dropIndicator = document.createElement('div');
+      dropIndicator.className = 'calendar-drop-indicator';
+      dropIndicator.style.position = 'absolute';
+      dropIndicator.style.height = '2px';
+      dropIndicator.style.backgroundColor = '#9b87f5';
+      dropIndicator.style.width = 'calc(100% - 10px)';
+      dropIndicator.style.zIndex = '100';
+      dropIndicator.style.pointerEvents = 'none';
+      dropIndicator.style.left = '5px';
+      calendarContainer.appendChild(dropIndicator);
+    }
+    
+    if (dropIndicator) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const offsetY = e.clientY - rect.top;
+      const hourOffset = Math.floor(offsetY / HOUR_HEIGHT);
+      const minuteOffset = (offsetY % HOUR_HEIGHT) / HOUR_HEIGHT * 60;
+      
+      // Position indicator at the mouse position
+      (dropIndicator as HTMLElement).style.top = `${Math.floor(hour * HOUR_HEIGHT + (offsetY % HOUR_HEIGHT))}px`;
+    }
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.currentTarget.classList.remove('droppable-active');
+    
+    // Check if we're leaving the calendar container
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
+      // Remove drop indicator
+      const dropIndicator = document.querySelector('.calendar-drop-indicator');
+      if (dropIndicator) {
+        dropIndicator.remove();
+      }
+    }
+  };
+
+  const handleDragOverPriorityColumn = (e: React.DragEvent, priority: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.classList.add('droppable-active');
+  };
+
+  const handleDragLeavePriorityColumn = (e: React.DragEvent) => {
+    e.stopPropagation();
+    e.currentTarget.classList.remove('droppable-active');
+  };
+
+  const handleDropOnPriorityColumn = (e: React.DragEvent, priority: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.classList.remove('droppable-active');
+    
+    if (onTaskDragToBoard) {
+      try {
+        const taskId = e.dataTransfer.getData("taskId");
+        const fromSource = e.dataTransfer.getData("from");
+        
+        if (fromSource === "calendar" && taskId) {
+          onTaskDragToBoard(taskId, priority);
+        }
+      } catch (error) {
+        console.error("Error handling task drop on priority column:", error);
+      }
+    }
   };
 
   const handleDrop = (e: React.DragEvent, day: Date, hour: number) => {
     e.preventDefault();
     e.currentTarget.classList.remove('droppable-active');
     
+    // Remove drop indicator
+    const dropIndicator = document.querySelector('.calendar-drop-indicator');
+    if (dropIndicator) {
+      dropIndicator.remove();
+    }
+    
     try {
       const taskJson = e.dataTransfer.getData("application/json");
       if (taskJson) {
         const task = JSON.parse(taskJson) as Task;
-        const startTime = set(day, { hours: hour, minutes: 0, seconds: 0 });
+        const rect = e.currentTarget.getBoundingClientRect();
+        const offsetY = e.clientY - rect.top;
+        const minuteOffset = Math.floor((offsetY % HOUR_HEIGHT) / HOUR_HEIGHT * 60);
+        
+        // Set the start time to the exact position where the task was dropped
+        const startTime = set(day, { hours: hour, minutes: minuteOffset, seconds: 0 });
         onDropTask(task, startTime);
       }
     } catch (error) {
@@ -200,7 +324,28 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     );
   };
 
-  const renderCalendarItem = (item: Task | CalendarEvent, isTask: boolean) => {
+  // Group tasks by time to handle multiple tasks at the same time
+  const groupTasksByTime = (tasks: Task[]): Record<string, Task[]> => {
+    const groupedTasks: Record<string, Task[]> = {};
+    
+    tasks.forEach(task => {
+      if (task.scheduled) {
+        const startHour = getHours(new Date(task.scheduled.start));
+        const startMinute = getMinutes(new Date(task.scheduled.start));
+        const timeKey = `${startHour}:${startMinute}`;
+        
+        if (!groupedTasks[timeKey]) {
+          groupedTasks[timeKey] = [];
+        }
+        
+        groupedTasks[timeKey].push(task);
+      }
+    });
+    
+    return groupedTasks;
+  };
+
+  const renderCalendarItem = (item: Task | CalendarEvent, isTask: boolean, index: number, totalItems: number) => {
     const start = isTask 
       ? (item as Task).scheduled?.start as Date
       : (item as CalendarEvent).start;
@@ -219,6 +364,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     
     const top = startHour * HOUR_HEIGHT + (startMinute / 60) * HOUR_HEIGHT;
     const height = (durationMinutes / 60) * HOUR_HEIGHT;
+    
+    // Calculate width and left offset for multiple items at the same time
+    const itemWidth = totalItems > 1 ? `calc(${100 / totalItems}% - 6px)` : "calc(100% - 4px)";
+    const leftOffset = totalItems > 1 ? `calc(${(index / totalItems) * 100}% + 2px)` : "2px";
+
+    // Determine special styling for running tasks
+    const isRunning = isTask && 
+      (item as Task).timerStarted && 
+      !(item as Task).timerPaused && 
+      !(item as Task).timerExpired && 
+      !(item as Task).completed;
+      
+    const isCompleted = isTask && (item as Task).completed;
 
     return (
       <div
@@ -226,14 +384,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         className={cn(
           "absolute rounded-md px-2 py-1 overflow-hidden cursor-pointer text-xs",
           isTask ? "calendar-task" : "calendar-event",
-          "left-1 right-1"
+          isRunning && "animate-pulse bg-purple-500 border-purple-700",
+          isCompleted && "bg-green-400 border-green-600 opacity-70",
         )}
         style={{
           top: `${top}px`,
           height: `${height}px`,
           zIndex: 5, // Ensure calendar items are above time labels
+          width: itemWidth,
+          left: leftOffset,
         }}
         onClick={isTask && onTaskClick ? () => onTaskClick(item as Task) : undefined}
+        draggable={isTask}
+        onDragStart={isTask ? (e) => handleDragStart(e, item as Task) : undefined}
       >
         <div className="font-medium truncate">
           {isTask ? (item as Task).title : (item as CalendarEvent).title}
@@ -244,6 +407,33 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             {format(new Date(start), 'HH:mm')} - {format(new Date(end), 'HH:mm')}
           </span>
         </div>
+      </div>
+    );
+  };
+
+  const renderPriorityDropZones = () => {
+    if (!onTaskDragToBoard || minimized) return null;
+    
+    const priorities = ['low', 'medium', 'high', 'critical'];
+    
+    return (
+      <div className="fixed top-20 right-6 flex flex-col space-y-2 z-50 opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity duration-300">
+        {priorities.map(priority => (
+          <div 
+            key={priority}
+            className={`w-24 h-12 rounded border-2 flex items-center justify-center text-xs font-medium ${
+              priority === 'low' ? 'border-blue-500 bg-blue-100' : 
+              priority === 'medium' ? 'border-green-500 bg-green-100' : 
+              priority === 'high' ? 'border-orange-500 bg-orange-100' : 
+              'border-red-500 bg-red-100'
+            }`}
+            onDragOver={(e) => handleDragOverPriorityColumn(e, priority)}
+            onDragLeave={handleDragLeavePriorityColumn}
+            onDrop={(e) => handleDropOnPriorityColumn(e, priority)}
+          >
+            {priority.charAt(0).toUpperCase() + priority.slice(1)}
+          </div>
+        ))}
       </div>
     );
   };
@@ -280,7 +470,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
         </div>
         
-        <div className="overflow-y-auto flex-1" ref={scrollAreaRef}>
+        <div className="overflow-y-auto flex-1 calendar-container" ref={scrollAreaRef}>
           <div className="pb-4 mb-4 border-b">
             <div 
               className={cn(
@@ -316,71 +506,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 />
               )}
 
-              {/* Tasks */}
-              {getTasksForDay(currentDate).map(task => (
-                renderCalendarItem(task, true)
-              ))}
+              {/* Render tasks grouped by time */}
+              {Object.entries(groupTasksByTime(getTasksForDay(currentDate))).map(([timeKey, tasksAtTime]) => 
+                tasksAtTime.map((task, index) => renderCalendarItem(task, true, index, tasksAtTime.length))
+              )}
 
               {/* Events */}
-              {getEventsForDay(currentDate).map(event => (
-                renderCalendarItem(event, false)
+              {getEventsForDay(currentDate).map((event, index) => (
+                renderCalendarItem(event, false, index, 1)
               ))}
             </div>
           </div>
-          
-          {/* Additional days stacked vertically (only show if we want additional days) */}
-          {minimized && false && [ // Disabled for now, can be enabled if showing more days in minimized mode is desired
-            addDays(currentDate, 1),
-            addDays(currentDate, 2),
-          ].map((day) => (
-            <div key={day.toString()} className="pb-4 mb-4 border-b">
-              <div 
-                className={cn(
-                  "p-2 text-center font-medium",
-                  isSameDay(day, new Date()) && "bg-blue-100 rounded-t-md"
-                )}
-              >
-                <div>{format(day, 'EEE')}</div>
-                <div>{format(day, 'd')}</div>
-              </div>
-              
-              <div className="relative border rounded-md mt-2 h-[1440px]">
-                {HOURS.map((hour) => (
-                  <div 
-                    key={hour} 
-                    className="border-t relative"
-                    style={{ height: `${HOUR_HEIGHT}px` }}
-                    onDragOver={(e) => handleDragOver(e, day, hour)}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, day, hour)}
-                  >
-                    <div className="absolute left-0 text-xs text-gray-400 -mt-2 ml-1" style={{ zIndex: 10 }}>
-                      {hour}:00
-                    </div>
-                  </div>
-                ))}
-
-                {/* Current time indicator */}
-                {isSameDay(day, new Date()) && (
-                  <div 
-                    className="current-time-indicator"
-                    style={{ top: `${currentTimePosition}px`, zIndex: 15 }}
-                  />
-                )}
-
-                {/* Tasks */}
-                {getTasksForDay(day).map(task => (
-                  renderCalendarItem(task, true)
-                ))}
-
-                {/* Events */}
-                {getEventsForDay(day).map(event => (
-                  renderCalendarItem(event, false)
-                ))}
-              </div>
-            </div>
-          ))}
         </div>
+        
+        {renderPriorityDropZones()}
       </div>
     );
   };
@@ -439,7 +578,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
 
         {/* Calendar body with a single scroll area */}
-        <ScrollArea className="flex-1" ref={scrollAreaRef}>
+        <ScrollArea className={`flex-1 calendar-container ${isScrolling ? 'smooth-scroll' : ''}`} ref={scrollAreaRef}>
           <div className="flex-1 h-[1440px]"> {/* 24 hours × 60px = 1440px */}
             <div className={cn(
               "grid gap-1 h-full",
@@ -477,20 +616,22 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     />
                   )}
 
-                  {/* Tasks */}
-                  {getTasksForDay(day).map(task => (
-                    renderCalendarItem(task, true)
-                  ))}
+                  {/* Render tasks grouped by time */}
+                  {Object.entries(groupTasksByTime(getTasksForDay(day))).map(([timeKey, tasksAtTime]) => 
+                    tasksAtTime.map((task, index) => renderCalendarItem(task, true, index, tasksAtTime.length))
+                  )}
 
                   {/* Events */}
-                  {getEventsForDay(day).map(event => (
-                    renderCalendarItem(event, false)
+                  {getEventsForDay(day).map((event, index) => (
+                    renderCalendarItem(event, false, index, 1)
                   ))}
                 </div>
               ))}
             </div>
           </div>
         </ScrollArea>
+        
+        {renderPriorityDropZones()}
       </div>
     );
   };
