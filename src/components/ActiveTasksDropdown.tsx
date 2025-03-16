@@ -4,7 +4,7 @@ import { Task } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
-import { Loader, CheckCircle, Clock, Plus, Minus } from "lucide-react";
+import { Loader, CheckCircle, Clock, Plus, Minus, Pause } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -13,13 +13,15 @@ interface ActiveTasksDropdownProps {
   onCompleteTask: (taskId: string) => void;
   onAddTime: (taskId: string, minutes: number) => void;
   onOpenTask: (task: Task) => void;
+  onStopTimer?: (taskId: string) => void;
 }
 
 const ActiveTasksDropdown: React.FC<ActiveTasksDropdownProps> = ({
   activeTasks,
   onCompleteTask,
   onAddTime,
-  onOpenTask
+  onOpenTask,
+  onStopTimer
 }) => {
   const [openPopover, setOpenPopover] = useState(false);
   
@@ -98,6 +100,22 @@ const ActiveTasksDropdown: React.FC<ActiveTasksDropdownProps> = ({
                 </div>
                 
                 <div className="flex gap-1">
+                  {/* Quick actions for active tasks */}
+                  {onStopTimer && !task.timerExpired && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-7 px-2 flex items-center gap-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onStopTimer(task.id);
+                      }}
+                    >
+                      <Pause className="h-3 w-3" />
+                      <span className="text-xs">Pause</span>
+                    </Button>
+                  )}
+                  
                   {task.timerExpired && (
                     <>
                       <Button 
@@ -112,20 +130,21 @@ const ActiveTasksDropdown: React.FC<ActiveTasksDropdownProps> = ({
                         <Plus className="h-3 w-3" />
                         <span className="text-xs">30m</span>
                       </Button>
-                      <Button 
-                        size="sm" 
-                        variant="default" 
-                        className="h-7 px-2 flex items-center gap-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onCompleteTask(task.id);
-                        }}
-                      >
-                        <CheckCircle className="h-3 w-3" />
-                        <span className="text-xs">Done</span>
-                      </Button>
                     </>
                   )}
+                  
+                  <Button 
+                    size="sm" 
+                    variant="default" 
+                    className="h-7 px-2 flex items-center gap-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCompleteTask(task.id);
+                    }}
+                  >
+                    <CheckCircle className="h-3 w-3" />
+                    <span className="text-xs">Done</span>
+                  </Button>
                 </div>
               </div>
             </div>

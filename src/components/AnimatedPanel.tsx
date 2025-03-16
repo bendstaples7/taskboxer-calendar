@@ -27,19 +27,35 @@ const AnimatedPanel: React.FC<AnimatedPanelProps> = ({
       )}
     >
       <div className="p-3 border-b flex items-center justify-between">
-        <h2 className="font-medium">{title}</h2>
-        <button
-          onClick={onToggle}
-          className={cn(
-            'p-1 rounded-full text-gray-500 hover:bg-gray-100 panel-handle',
-            side === 'left' ? 'ml-auto' : 'mr-auto'
+        <h2 className="font-medium flex items-center">
+          {side === 'left' && !expanded && (
+            <button
+              onClick={onToggle}
+              className="p-1 rounded-full text-gray-500 hover:bg-gray-100 mr-2"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
           )}
-        >
-          {expanded && side === 'left' && <ChevronRight className="h-4 w-4" />}
-          {!expanded && side === 'left' && <ChevronLeft className="h-4 w-4" />}
-          {expanded && side === 'right' && <ChevronLeft className="h-4 w-4" />}
-          {!expanded && side === 'right' && <ChevronRight className="h-4 w-4" />}
-        </button>
+          {title}
+          {side === 'right' && !expanded && (
+            <button
+              onClick={onToggle}
+              className="p-1 rounded-full text-gray-500 hover:bg-gray-100 ml-2"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          )}
+        </h2>
+        {expanded && (
+          <button
+            onClick={onToggle}
+            className={cn(
+              'p-1 rounded-full text-gray-500 hover:bg-gray-100 panel-handle'
+            )}
+          >
+            {side === 'left' ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </button>
+        )}
       </div>
       <div className="flex-1 overflow-hidden">
         {children}

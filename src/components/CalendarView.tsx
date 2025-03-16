@@ -17,11 +17,14 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Clock, ArrowLeft, ArrowRight } from "lucide-react";
+import { Clock, ArrowLeft, ArrowRight, Trash } from "lucide-react";
 import { Task, CalendarEvent } from "@/lib/types";
 import TaskTimer from "./TaskTimer";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+// Set document title to match the app name
+document.title = "shinkō";
 
 interface CalendarViewProps {
   events: CalendarEvent[];
@@ -31,10 +34,12 @@ interface CalendarViewProps {
   onDropTask: (task: Task, startTime: Date) => void;
   onTaskClick?: (task: Task) => void;
   onDateChange?: (date: Date) => void;
+  onTaskDelete?: (taskId: string) => void;
   singleDayMode?: boolean;
   minimized?: boolean;
   scrollToCurrentTime?: boolean;
   onTaskDragToBoard?: (taskId: string, newPriority: string) => void;
+  onTaskResize?: (taskId: string, newDuration: number) => void;
 }
 
 const HOUR_HEIGHT = 60; // pixels per hour
@@ -48,15 +53,23 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onDropTask,
   onTaskClick,
   onDateChange,
+  onTaskDelete,
   singleDayMode = false,
   minimized = false,
   scrollToCurrentTime = true,
-  onTaskDragToBoard
+  onTaskDragToBoard,
+  onTaskResize
 }) => {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [currentTimePosition, setCurrentTimePosition] = useState<number>(0);
   const [isScrolling, setIsScrolling] = useState<boolean>(false);
+  const [isResizing, setIsResizing] = useState<boolean>(false);
+  const [resizingTaskId, setResizingTaskId] = useState<string | null>(null);
+  const [resizeStartY, setResizeStartY] = useState<number>(0);
+  const [showTrashBin, setShowTrashBin] = useState<boolean>(false);
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Calculate the start and end of the week/day based on the current mode
   const start = singleDayMode ? currentDate : startOfWeek(currentDate, { weekStartsOn: 0 });
@@ -81,14 +94,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     };
   }, []);
 
-  // Scroll to current time on initial render and when scrollToCurrentTime changes
+  // Auto scroll to current time on initial render with smooth animation
   useEffect(() => {
     if (scrollToCurrentTime && scrollAreaRef.current) {
       const now = new Date();
       const hours = getHours(now);
       const minutes = getMinutes(now);
       const position = hours * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT;
-      const scrollPosition = Math.max(0, position - 200);
+      // Position current time in middle of viewport
+      const viewportHeight = scrollAreaRef.current.clientHeight;
+      const scrollPosition = Math.max(0, position - viewportHeight / 2);
       
       // Use smooth scrolling for a better UX
       setIsScrolling(true);
@@ -120,6 +135,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     }
   }, [scrollToCurrentTime]);
 
+  // Detect device orientation changes
+  useEffect(() => {
+    const handleOrientationChange = () => {
+      const isLandscape = window.innerWidth > window.innerHeight;
+      // You can add logic here to change default view based on orientation
+    };
+
+    window.addEventListener('resize', handleOrientationChange);
+    handleOrientationChange(); // Check on initial render
+
+    return () => {
+      window.removeEventListener('resize', handleOrientationChange);
+    };
+  }, []);
+
   // Notify parent component when date changes
   useEffect(() => {
     if (onDateChange) {
@@ -146,12 +176,18 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const goToToday = () => {
     setCurrentDate(new Date());
     // Force scroll to current time when going to today
+    scrollToCurrentTime();
+  };
+
+  const scrollToCurrentTime = () => {
     if (scrollAreaRef.current) {
       const now = new Date();
       const hours = getHours(now);
       const minutes = getMinutes(now);
       const position = hours * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT;
-      const scrollPosition = Math.max(0, position - 200);
+      // Position current time in middle of viewport
+      const viewportHeight = scrollAreaRef.current.clientHeight;
+      const scrollPosition = Math.max(0, position - viewportHeight / 2);
       
       // Use smooth scrolling
       setIsScrolling(true);
@@ -182,11 +218,52 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     }
   };
 
+  // Auto-scroll on drag near edges
+  const handleCalendarDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    
+    if (!scrollAreaRef.current) return;
+    
+    const scrollArea = scrollAreaRef.current;
+    const rect = scrollArea.getBoundingClientRect();
+    const mouseY = e.clientY;
+    
+    // Clear any existing scrolling timeout
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = null;
+    }
+    
+    // Auto-scroll when near bottom edge
+    if (mouseY > rect.bottom - 100) {
+      scrollTimeoutRef.current = setTimeout(() => {
+        scrollArea.scrollBy({
+          top: 50,
+          behavior: 'smooth'
+        });
+        handleCalendarDragOver(e);
+      }, 100);
+    }
+    // Auto-scroll when near top edge
+    else if (mouseY < rect.top + 100) {
+      scrollTimeoutRef.current = setTimeout(() => {
+        scrollArea.scrollBy({
+          top: -50,
+          behavior: 'smooth'
+        });
+        handleCalendarDragOver(e);
+      }, 100);
+    }
+  };
+
   const handleDragStart = (e: React.DragEvent, task: Task) => {
     e.dataTransfer.setData("application/json", JSON.stringify(task));
     e.dataTransfer.setData("taskId", task.id);
     e.dataTransfer.setData("from", "calendar");
     e.dataTransfer.effectAllowed = "move";
+    
+    setDraggedTaskId(task.id);
+    setShowTrashBin(true);
     
     // Create a ghost image for drag preview
     const dragPreview = document.createElement("div");
@@ -207,7 +284,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   const handleDragOver = (e: React.DragEvent, day: Date, hour: number) => {
     e.preventDefault();
-    // Add visual indication for drop target
     e.currentTarget.classList.add('droppable-active');
     
     // Create or update drop indicator
@@ -240,6 +316,44 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       // Position indicator at the mouse position - Fix: Add HTMLElement type assertion
       (dropIndicator as HTMLElement).style.top = `${Math.floor(hour * HOUR_HEIGHT + (offsetY % HOUR_HEIGHT))}px`;
     }
+    
+    // Handle auto-scrolling
+    handleCalendarDragOver(e);
+  };
+
+  const handleResizeStart = (e: React.MouseEvent, taskId: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIsResizing(true);
+    setResizingTaskId(taskId);
+    setResizeStartY(e.clientY);
+    
+    // Add global event listeners for mouse move and up
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
+  };
+  
+  const handleResizeMove = (e: MouseEvent) => {
+    if (isResizing && resizingTaskId && onTaskResize) {
+      const deltaY = e.clientY - resizeStartY;
+      const deltaMinutes = Math.round((deltaY / HOUR_HEIGHT) * 60);
+      
+      const task = tasks.find(t => t.id === resizingTaskId);
+      if (task) {
+        const newDuration = Math.max(15, task.estimatedTime + deltaMinutes);
+        onTaskResize(resizingTaskId, newDuration);
+        setResizeStartY(e.clientY);
+      }
+    }
+  };
+  
+  const handleResizeEnd = () => {
+    setIsResizing(false);
+    setResizingTaskId(null);
+    
+    // Remove global event listeners
+    document.removeEventListener('mousemove', handleResizeMove);
+    document.removeEventListener('mouseup', handleResizeEnd);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
@@ -256,6 +370,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     }
   };
 
+  const handleDragEnd = () => {
+    setShowTrashBin(false);
+    setDraggedTaskId(null);
+    
+    // Clear any scrolling timeout
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = null;
+    }
+  };
+
   const handleDragOverPriorityColumn = (e: React.DragEvent, priority: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -265,6 +390,32 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const handleDragLeavePriorityColumn = (e: React.DragEvent) => {
     e.stopPropagation();
     e.currentTarget.classList.remove('droppable-active');
+  };
+
+  const handleDragOverTrash = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.add('trash-active');
+  };
+  
+  const handleDragLeaveTrash = (e: React.DragEvent) => {
+    e.currentTarget.classList.remove('trash-active');
+  };
+  
+  const handleDropOnTrash = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove('trash-active');
+    setShowTrashBin(false);
+    
+    if (onTaskDelete) {
+      try {
+        const taskId = e.dataTransfer.getData("taskId");
+        if (taskId) {
+          onTaskDelete(taskId);
+        }
+      } catch (error) {
+        console.error("Error handling task drop on trash:", error);
+      }
+    }
   };
 
   const handleDropOnPriorityColumn = (e: React.DragEvent, priority: string) => {
@@ -311,6 +462,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     } catch (error) {
       console.error("Error parsing dropped task:", error);
     }
+    
+    setShowTrashBin(false);
   };
 
   const getTasksForDay = (day: Date) => {
@@ -390,6 +543,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           isTask ? "calendar-task" : "calendar-event",
           isRunning && "animate-pulse bg-purple-500 border-purple-700",
           isCompleted && "bg-green-400 border-green-600 opacity-70",
+          isTask && (item as Task).id === resizingTaskId && "resize-active"
         )}
         style={{
           top: `${top}px`,
@@ -397,10 +551,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           zIndex: 5, // Ensure calendar items are above time labels
           width: itemWidth,
           left: leftOffset,
+          cursor: isResizing && (item as Task).id === resizingTaskId ? 'ns-resize' : 'grab'
         }}
         onClick={isTask && onTaskClick ? () => onTaskClick(item as Task) : undefined}
-        draggable={isTask}
-        onDragStart={isTask ? (e) => handleDragStart(e, item as Task) : undefined}
+        draggable={isTask && !isResizing}
+        onDragStart={isTask && !isResizing ? (e) => handleDragStart(e, item as Task) : undefined}
+        onDragEnd={handleDragEnd}
       >
         <div className="font-medium truncate">
           {isTask ? (item as Task).title : (item as CalendarEvent).title}
@@ -411,6 +567,36 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             {format(new Date(start), 'HH:mm')} - {format(new Date(end), 'HH:mm')}
           </span>
         </div>
+        
+        {/* Resize handle for tasks */}
+        {isTask && (
+          <div 
+            className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize"
+            onMouseDown={(e) => handleResizeStart(e, (item as Task).id)}
+            title="Resize task"
+          />
+        )}
+      </div>
+    );
+  };
+
+  const renderTrashBin = () => {
+    if (!showTrashBin || !onTaskDelete) return null;
+    
+    return (
+      <div 
+        className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-red-500 hover:bg-red-600 text-white p-4 rounded-full shadow-lg z-50 flex items-center justify-center transition-all duration-300"
+        style={{ 
+          width: '60px', 
+          height: '60px',
+          opacity: showTrashBin ? 1 : 0,
+          transform: showTrashBin ? 'translate(-50%, 0)' : 'translate(-50%, 100px)'
+        }}
+        onDragOver={handleDragOverTrash}
+        onDragLeave={handleDragLeaveTrash}
+        onDrop={handleDropOnTrash}
+      >
+        <Trash className="h-6 w-6" />
       </div>
     );
   };
@@ -461,6 +647,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             <Button 
               size="sm" 
               onClick={goToToday}
+              className="bg-gray-200 text-gray-900 hover:bg-gray-300"
             >
               Today
             </Button>
@@ -479,7 +666,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             <div 
               className={cn(
                 "p-2 text-center font-medium",
-                isSameDay(currentDate, new Date()) && "bg-blue-100 rounded-t-md"
+                isSameDay(currentDate, new Date()) && "bg-gray-200 rounded-t-md"
               )}
             >
               <div>{format(currentDate, 'EEE')}</div>
@@ -524,6 +711,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
         
         {renderPriorityDropZones()}
+        {renderTrashBin()}
       </div>
     );
   };
@@ -549,6 +737,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             <Button 
               size="sm" 
               onClick={goToToday}
+              className="bg-gray-200 text-gray-900 hover:bg-gray-300"
             >
               Today
             </Button>
@@ -572,7 +761,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               key={day.toString()} 
               className={cn(
                 "p-2 text-center font-medium",
-                isSameDay(day, new Date()) && "bg-blue-100 rounded-t-md"
+                isSameDay(day, new Date()) && "bg-gray-200 rounded-t-md"
               )}
             >
               <div>{format(day, 'EEE')}</div>
@@ -636,6 +825,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         </ScrollArea>
         
         {renderPriorityDropZones()}
+        {renderTrashBin()}
       </div>
     );
   };

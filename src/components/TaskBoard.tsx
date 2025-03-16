@@ -1,10 +1,9 @@
 
 import React, { useState } from "react";
 import { Task, Priority } from "@/lib/types";
-import TaskCard from "./TaskCard";
-import { Button } from "@/components/ui/button";
-import { Plus, ChevronDown, ChevronRight } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Trash } from "lucide-react";
+import CompletedTasksPanel from "./CompletedTasksPanel";
+import TaskBoardSection from "./TaskBoardSection";
 
 interface TaskBoardProps {
   tasks: Task[];
@@ -13,6 +12,7 @@ interface TaskBoardProps {
   onDragStart: (task: Task) => void;
   onTaskMove?: (taskId: string, newPriority: Priority, newPosition?: number) => void;
   onTaskDragToCalendar?: (task: Task, startTime: Date) => void;
+  onTaskDelete?: (taskId: string) => void;
   collapsedSections?: string[];
   onToggleSection?: (section: string) => void;
 }
@@ -24,12 +24,15 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
   onDragStart,
   onTaskMove,
   onTaskDragToCalendar,
+  onTaskDelete,
   collapsedSections = [],
   onToggleSection = () => {},
 }) => {
   const priorities: Priority[] = ["critical", "high", "medium", "low"];
   const [dragOverPriority, setDragOverPriority] = useState<Priority | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [showTrashBin, setShowTrashBin] = useState<boolean>(false);
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   
   const getPriorityTasks = (priority: Priority) => {
     return tasks
@@ -50,6 +53,9 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
     e.dataTransfer.setData("taskId", task.id);
     e.dataTransfer.setData("from", "taskboard");
     e.dataTransfer.effectAllowed = "move";
+    
+    setDraggedTaskId(task.id);
+    setShowTrashBin(true);
     
     // Create a ghost image for drag preview
     const dragPreview = document.createElement("div");
@@ -87,6 +93,37 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
     setDragOverIndex(null);
   };
 
+  const handleDragEnd = () => {
+    setShowTrashBin(false);
+    setDraggedTaskId(null);
+  };
+
+  const handleDragOverTrash = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.add('trash-active');
+  };
+  
+  const handleDragLeaveTrash = (e: React.DragEvent) => {
+    e.currentTarget.classList.remove('trash-active');
+  };
+  
+  const handleDropOnTrash = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove('trash-active');
+    setShowTrashBin(false);
+    
+    if (onTaskDelete) {
+      try {
+        const taskId = e.dataTransfer.getData("taskId");
+        if (taskId) {
+          onTaskDelete(taskId);
+        }
+      } catch (error) {
+        console.error("Error handling task drop on trash:", error);
+      }
+    }
+  };
+
   const handleDrop = (e: React.DragEvent, priority: Priority, dropIndex?: number) => {
     e.preventDefault();
     e.currentTarget.classList.remove('droppable-active');
@@ -113,125 +150,59 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
     } catch (error) {
       console.error("Error handling task drop:", error);
     }
+    
+    setShowTrashBin(false);
   };
 
-  const renderColumn = (priority: Priority) => {
-    const priorityTasks = getPriorityTasks(priority);
-    const capitalizedPriority = priority.charAt(0).toUpperCase() + priority.slice(1);
-    const isCollapsed = collapsedSections.includes(priority);
-
-    const priorityBackgroundColor = 
-      priority === 'low' ? 'bg-blue-100' : 
-      priority === 'medium' ? 'bg-green-100' : 
-      priority === 'high' ? 'bg-orange-100' : 
-      'bg-red-100';
-
+  const renderTrashBin = () => {
+    if (!showTrashBin || !onTaskDelete) return null;
+    
     return (
-      <div className="flex flex-col h-full">
-        <Collapsible
-          open={!isCollapsed}
-          onOpenChange={() => onToggleSection(priority)}
-        >
-          <CollapsibleTrigger className="w-full">
-            <div className={`p-2 ${priorityBackgroundColor} rounded-t-md font-medium flex justify-between items-center`}>
-              <h2>{capitalizedPriority}</h2>
-              <div className="flex items-center">
-                <span className="bg-gray-100 px-2 rounded-full text-sm mr-2">{priorityTasks.length}</span>
-                {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </div>
-            </div>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div 
-              className="flex-1 p-2 bg-gray-50 rounded-b-md overflow-y-auto min-h-[200px]"
-              onDragOver={(e) => handleDragOver(e, priority)}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, priority)}
-            >
-              {priorityTasks.map((task, index) => (
-                <div 
-                  key={task.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, task)}
-                  onDragOver={(e) => handleDragOver(e, priority, index)}
-                  onDrop={(e) => handleDrop(e, priority, index)}
-                  className={`relative ${dragOverPriority === priority && dragOverIndex === index ? 'border-t-2 border-purple-500' : ''}`}
-                >
-                  <TaskCard 
-                    task={task} 
-                    onClick={() => onTaskClick(task)}
-                  />
-                  {dragOverPriority === priority && dragOverIndex === index && (
-                    <div className="absolute w-full h-0.5 top-0 bg-purple-500 rounded"></div>
-                  )}
-                </div>
-              ))}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="w-full mt-2" 
-                onClick={() => onAddTask(priority)}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Task
-              </Button>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-      </div>
-    );
-  };
-
-  const renderScheduledColumn = () => {
-    const scheduledTasks = getScheduledTasks();
-    const isCollapsed = collapsedSections.includes('scheduled');
-
-    return (
-      <div className="flex flex-col h-full">
-        <Collapsible
-          open={!isCollapsed}
-          onOpenChange={() => onToggleSection('scheduled')}
-        >
-          <CollapsibleTrigger className="w-full">
-            <div className="p-2 bg-purple-100 rounded-t-md font-medium flex justify-between items-center">
-              <h2>Scheduled</h2>
-              <div className="flex items-center">
-                <span className="bg-gray-100 px-2 rounded-full text-sm mr-2">{scheduledTasks.length}</span>
-                {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </div>
-            </div>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="flex-1 p-2 bg-gray-50 rounded-b-md overflow-y-auto min-h-[200px]">
-              {scheduledTasks.map(task => (
-                <div 
-                  key={task.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, task)}
-                >
-                  <TaskCard 
-                    task={task} 
-                    onClick={() => onTaskClick(task)}
-                  />
-                </div>
-              ))}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+      <div 
+        className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-red-500 hover:bg-red-600 text-white p-4 rounded-full shadow-lg z-50 flex items-center justify-center transition-all duration-300"
+        style={{ 
+          width: '60px', 
+          height: '60px',
+          opacity: showTrashBin ? 1 : 0,
+          transform: showTrashBin ? 'translate(-50%, 0)' : 'translate(-50%, 100px)'
+        }}
+        onDragOver={handleDragOverTrash}
+        onDragLeave={handleDragLeaveTrash}
+        onDrop={handleDropOnTrash}
+      >
+        <Trash className="h-6 w-6" />
       </div>
     );
   };
 
   return (
-    <div className="grid grid-cols-5 gap-4 h-full">
+    <div className="flex flex-col h-full gap-4 overflow-auto">
       {priorities.map(priority => (
-        <div key={priority} className="col-span-1">
-          {renderColumn(priority)}
-        </div>
+        <TaskBoardSection
+          key={priority}
+          title={priority.charAt(0).toUpperCase() + priority.slice(1)}
+          priority={priority}
+          tasks={getPriorityTasks(priority)}
+          isCollapsed={collapsedSections.includes(priority)}
+          onToggle={() => onToggleSection(priority)}
+          onTaskClick={onTaskClick}
+          onAddTask={() => onAddTask(priority)}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          dragOverPriority={dragOverPriority}
+          dragOverIndex={dragOverIndex}
+        />
       ))}
-      <div className="col-span-1">
-        {renderScheduledColumn()}
-      </div>
+      
+      <CompletedTasksPanel 
+        tasks={getCompletedTasks()}
+        onTaskClick={onTaskClick}
+        onTaskDelete={onTaskDelete}
+      />
+      
+      {renderTrashBin()}
     </div>
   );
 };
