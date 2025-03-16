@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -14,7 +15,6 @@ import { useGoogleCalendarSync } from "@/hooks/useGoogleCalendarSync";
 import { 
   Plus, 
   Calendar as CalendarIcon, 
-  CalendarDays,
   LayoutList 
 } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
@@ -112,7 +112,7 @@ const Index = () => {
   const [addTaskDialogOpen, setAddTaskDialogOpen] = useState(false);
   const [initialPriority, setInitialPriority] = useState<Priority>('medium');
   const [draggingTask, setDraggingTask] = useState<Task | null>(null);
-  const [viewMode, setViewMode] = useState<'calendar' | 'taskboard' | 'day'>('calendar');
+  const [viewMode, setViewMode] = useState<'calendar' | 'taskboard'>('calendar');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [calendarExpanded, setCalendarExpanded] = useState(true);
@@ -360,6 +360,22 @@ const Index = () => {
       }
       return task;
     }));
+
+    toast({
+      title: "Timer paused",
+      description: "Task timer has been paused. You can resume it later.",
+    });
+  };
+
+  const handleTaskMove = (taskId: string, newPriority: Priority) => {
+    setTasks(prev => prev.map(task => 
+      task.id === taskId ? { ...task, priority: newPriority } : task
+    ));
+
+    toast({
+      title: "Task moved",
+      description: `Task has been moved to ${newPriority} priority.`,
+    });
   };
 
   const handleAddTime = (taskId: string, minutes: number) => {
@@ -433,19 +449,10 @@ const Index = () => {
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
             <h1 className="text-2xl font-bold flex items-center font-['Noto_Sans_JP',_sans-serif]">
-              <CalendarIcon className="h-6 w-6 mr-2 text-purple-500" />
-              進行 Shinkō
+              <img src="/lovable-uploads/f43f9967-69ed-4047-bfc3-f619d50d3d40.png" alt="Shinko Logo" className="h-8 w-auto mr-2" />
+              shinkō
             </h1>
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setViewMode('day')}
-                className={viewMode === 'day' ? 'bg-purple-100 text-purple-900' : ''}
-              >
-                <CalendarDays className="h-4 w-4 mr-1" />
-                Day View
-              </Button>
               <Button 
                 variant="outline" 
                 size="sm"
@@ -494,97 +501,59 @@ const Index = () => {
       </header>
 
       <main className="flex-1 container mx-auto p-4">
-        {viewMode === 'day' ? (
-          <div className="flex gap-4 h-[calc(100vh-10rem)]">
-            <div className="w-1/3 bg-white rounded-lg shadow-sm border h-full overflow-hidden">
-              <div className="p-4 border-b">
-                <h2 className="text-xl font-semibold">Today</h2>
-              </div>
-              <div className="h-[calc(100%-4rem)] overflow-auto">
-                <CalendarView 
-                  singleDayMode={true}
-                  events={events}
-                  tasks={tasks}
-                  onTaskUnschedule={handleTaskUnschedule}
-                  onTaskComplete={handleTaskComplete}
-                  onDropTask={handleTaskSchedule}
-                  onTaskClick={handleTaskClick}
-                  onDateChange={handleCalendarDateChange}
-                />
-              </div>
-            </div>
-            
-            <div className="w-2/3 bg-white rounded-lg shadow-sm border h-full overflow-hidden">
-              <div className="p-4 border-b">
-                <h2 className="text-xl font-semibold">Task Board</h2>
-              </div>
-              <div className="h-[calc(100%-4rem)] overflow-auto">
-                <TaskBoard 
-                  tasks={tasks}
-                  onTaskClick={handleTaskClick}
-                  onAddTask={(priority) => {
-                    setInitialPriority(priority);
-                    setAddTaskDialogOpen(true);
-                  }}
-                  onDragStart={setDraggingTask}
-                />
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex gap-4 h-[calc(100vh-10rem)]">
-            <AnimatedPanel
-              title="Calendar"
-              side="left"
-              expanded={calendarExpanded}
-              onToggle={toggleCalendarExpanded}
-            >
-              <CalendarView 
-                singleDayMode={false}
-                events={events}
+        <div className="flex gap-4 h-[calc(100vh-10rem)]">
+          <AnimatedPanel
+            title="Calendar"
+            side="left"
+            expanded={calendarExpanded}
+            onToggle={toggleCalendarExpanded}
+          >
+            <CalendarView 
+              singleDayMode={false}
+              events={events}
+              tasks={tasks}
+              onTaskUnschedule={handleTaskUnschedule}
+              onTaskComplete={handleTaskComplete}
+              onDropTask={handleTaskSchedule}
+              onTaskClick={handleTaskClick}
+              onDateChange={handleCalendarDateChange}
+              minimized={!calendarExpanded}
+            />
+          </AnimatedPanel>
+          
+          <AnimatedPanel
+            title="Task Board"
+            side="right"
+            expanded={taskboardExpanded}
+            onToggle={toggleTaskboardExpanded}
+          >
+            {taskboardExpanded ? (
+              <TaskBoard 
                 tasks={tasks}
-                onTaskUnschedule={handleTaskUnschedule}
-                onTaskComplete={handleTaskComplete}
-                onDropTask={handleTaskSchedule}
                 onTaskClick={handleTaskClick}
-                onDateChange={handleCalendarDateChange}
-                minimized={!calendarExpanded}
+                onAddTask={(priority) => {
+                  setInitialPriority(priority);
+                  setAddTaskDialogOpen(true);
+                }}
+                onDragStart={setDraggingTask}
+                onTaskMove={handleTaskMove}
               />
-            </AnimatedPanel>
-            
-            <AnimatedPanel
-              title="Task Board"
-              side="right"
-              expanded={taskboardExpanded}
-              onToggle={toggleTaskboardExpanded}
-            >
-              {taskboardExpanded ? (
-                <TaskBoard 
-                  tasks={tasks}
-                  onTaskClick={handleTaskClick}
-                  onAddTask={(priority) => {
-                    setInitialPriority(priority);
-                    setAddTaskDialogOpen(true);
-                  }}
-                  onDragStart={setDraggingTask}
-                />
-              ) : (
-                <StackedTaskBoard
-                  tasks={tasks}
-                  onTaskClick={handleTaskClick}
-                  onAddTask={(priority) => {
-                    setInitialPriority(priority);
-                    setAddTaskDialogOpen(true);
-                  }}
-                  onDragStart={setDraggingTask}
-                  minimized={true}
-                  collapsedSections={collapsedSections}
-                  onToggleSection={toggleSection}
-                />
-              )}
-            </AnimatedPanel>
-          </div>
-        )}
+            ) : (
+              <StackedTaskBoard
+                tasks={tasks}
+                onTaskClick={handleTaskClick}
+                onAddTask={(priority) => {
+                  setInitialPriority(priority);
+                  setAddTaskDialogOpen(true);
+                }}
+                onDragStart={setDraggingTask}
+                minimized={true}
+                collapsedSections={collapsedSections}
+                onToggleSection={toggleSection}
+              />
+            )}
+          </AnimatedPanel>
+        </div>
       </main>
 
       <AddTaskDialog 

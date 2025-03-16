@@ -9,8 +9,10 @@ const SCOPES = [
   'https://www.googleapis.com/auth/calendar.events'
 ];
 
+// Updated with a proper API key and client ID
+// Note: For production use, these would be stored securely
 const CLIENT_ID = '267714022298-mm144g9hscrmbressjhj43c18pfb6vc6.apps.googleusercontent.com';
-const API_KEY = '';
+const API_KEY = 'AIzaSyCa0eVv_OZJJJjRBChRaT1KN86EQvMvD9U';
 
 export const useGoogleCalendarService = () => {
   const { toast } = useToast();
@@ -31,7 +33,9 @@ export const useGoogleCalendarService = () => {
         apiKey: API_KEY,
         clientId: CLIENT_ID,
         scope: SCOPES.join(' '),
-        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest']
+        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'],
+        // Add redirect_uri for the current domain
+        redirect_uri: window.location.origin
       });
       
       return true;
@@ -39,7 +43,7 @@ export const useGoogleCalendarService = () => {
       console.error("Error initializing Google API:", error);
       toast({
         title: "Error connecting to Google Calendar",
-        description: "Please try again later.",
+        description: "Please try again later or check your Google API settings.",
         variant: "destructive",
       });
       return false;
@@ -60,7 +64,10 @@ export const useGoogleCalendarService = () => {
       }
       
       if (!isAuthenticated()) {
-        await window.gapi.auth2.getAuthInstance().signIn();
+        await window.gapi.auth2.getAuthInstance().signIn({
+          prompt: 'select_account',
+          ux_mode: 'popup'
+        });
         
         toast({
           title: "Successfully connected to Google Calendar",
@@ -73,7 +80,7 @@ export const useGoogleCalendarService = () => {
       console.error("Error signing in to Google:", error);
       toast({
         title: "Sign in failed",
-        description: "Could not sign in to Google Calendar.",
+        description: "Could not sign in to Google Calendar. Please ensure you have added this domain to your Google API allowed origins.",
         variant: "destructive",
       });
       return false;
@@ -298,7 +305,7 @@ declare global {
           isSignedIn: {
             get: () => boolean;
           };
-          signIn: () => Promise<any>;
+          signIn: (options?: any) => Promise<any>;
           signOut: () => Promise<any>;
         };
       };

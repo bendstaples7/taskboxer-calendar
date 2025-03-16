@@ -11,6 +11,7 @@ interface TaskBoardProps {
   onTaskClick: (task: Task) => void;
   onAddTask: (priority: Priority) => void;
   onDragStart: (task: Task) => void;
+  onTaskMove?: (taskId: string, newPriority: Priority, newPosition?: number) => void;
   collapsedSections?: string[];
   onToggleSection?: (section: string) => void;
 }
@@ -20,28 +21,63 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
   onTaskClick,
   onAddTask,
   onDragStart,
+  onTaskMove,
   collapsedSections = [],
   onToggleSection = () => {},
 }) => {
   const priorities: Priority[] = ["critical", "high", "medium", "low"];
   
   const getPriorityTasks = (priority: Priority) => {
-    return tasks.filter(task => task.priority === priority && !task.scheduled);
+    return tasks.filter(task => task.priority === priority && !task.scheduled && !task.completed);
   };
 
   const getScheduledTasks = () => {
     return tasks.filter(task => task.scheduled && !task.completed);
   };
 
+  const getCompletedTasks = () => {
+    return tasks.filter(task => task.completed);
+  };
+
   const handleDragStart = (e: React.DragEvent, task: Task) => {
     e.dataTransfer.setData("application/json", JSON.stringify(task));
+    e.dataTransfer.setData("taskId", task.id);
     onDragStart(task);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.add('droppable-active');
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.currentTarget.classList.remove('droppable-active');
+  };
+
+  const handleDrop = (e: React.DragEvent, priority: Priority) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove('droppable-active');
+    
+    try {
+      const taskId = e.dataTransfer.getData("taskId");
+      if (taskId && onTaskMove) {
+        onTaskMove(taskId, priority);
+      }
+    } catch (error) {
+      console.error("Error handling task drop:", error);
+    }
   };
 
   const renderColumn = (priority: Priority) => {
     const priorityTasks = getPriorityTasks(priority);
     const capitalizedPriority = priority.charAt(0).toUpperCase() + priority.slice(1);
     const isCollapsed = collapsedSections.includes(priority);
+
+    const priorityBackgroundColor = 
+      priority === 'low' ? 'bg-blue-100' : 
+      priority === 'medium' ? 'bg-green-100' : 
+      priority === 'high' ? 'bg-orange-100' : 
+      'bg-red-100';
 
     return (
       <div className="flex flex-col h-full">
@@ -50,7 +86,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
           onOpenChange={() => onToggleSection(priority)}
         >
           <CollapsibleTrigger className="w-full">
-            <div className={`p-2 bg-${priority === 'low' ? 'blue' : priority === 'medium' ? 'yellow' : priority === 'high' ? 'orange' : 'red'}-100 rounded-t-md font-medium flex justify-between items-center`}>
+            <div className={`p-2 ${priorityBackgroundColor} rounded-t-md font-medium flex justify-between items-center`}>
               <h2>{capitalizedPriority}</h2>
               <div className="flex items-center">
                 <span className="bg-gray-100 px-2 rounded-full text-sm mr-2">{priorityTasks.length}</span>
@@ -59,7 +95,12 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
             </div>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <div className="flex-1 p-2 bg-gray-50 rounded-b-md overflow-y-auto min-h-[200px]">
+            <div 
+              className="flex-1 p-2 bg-gray-50 rounded-b-md overflow-y-auto min-h-[200px]"
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, priority)}
+            >
               {priorityTasks.map(task => (
                 <div 
                   key={task.id}

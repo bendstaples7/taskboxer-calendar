@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Task, Priority, Label } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CheckCircle, Calendar, Play, Pause, SignalLow, SignalMedium, SignalHigh, Flame } from 'lucide-react';
+import { Clock, CheckCircle, Calendar, Play, Pause, Stop, SignalLow, SignalMedium, SignalHigh, Flame } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TaskTimer from './TaskTimer';
 import { format } from 'date-fns';
@@ -44,6 +44,15 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
   const [estimatedTime, setEstimatedTime] = useState(task.estimatedTime);
   const [selectedLabels, setSelectedLabels] = useState<Label[]>(task.labels);
 
+  useEffect(() => {
+    // Update local state when task prop changes
+    setTitle(task.title);
+    setDescription(task.description);
+    setPriority(task.priority);
+    setEstimatedTime(task.estimatedTime);
+    setSelectedLabels(task.labels);
+  }, [task]);
+
   const handleSave = () => {
     onUpdate({
       ...task,
@@ -72,6 +81,7 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
 
   const handleTimerStart = () => {
     onStartTimer(task.id);
+    onOpenChange(false); // Close dialog when starting task
   };
 
   const handleTimerStop = () => {
@@ -81,6 +91,16 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
   const handleTimerComplete = () => {
     onTimerComplete(task.id);
     onComplete();
+  };
+
+  const handleUnschedule = () => {
+    onUnschedule();
+    onOpenChange(false);
+  };
+
+  const handleComplete = () => {
+    onComplete();
+    onOpenChange(false);
   };
 
   const handleAddTime = (minutes: number) => {
@@ -104,7 +124,7 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>Edit Task</DialogTitle>
         </DialogHeader>
@@ -116,6 +136,7 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
               value={title} 
               onChange={(e) => setTitle(e.target.value)} 
               placeholder="Task title" 
+              className="w-full"
             />
           </div>
           
@@ -126,6 +147,7 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
               onChange={(e) => setDescription(e.target.value)} 
               placeholder="Task description" 
               rows={3}
+              className="w-full resize-none"
             />
           </div>
           
@@ -135,7 +157,7 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
               value={priority} 
               onValueChange={(value: Priority) => setPriority(value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select priority">
                   {priority && (
                     <div className="flex items-center gap-2">
@@ -181,6 +203,7 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
               value={estimatedTime} 
               onChange={(e) => setEstimatedTime(parseInt(e.target.value))} 
               min={1}
+              className="w-full"
             />
           </div>
           
@@ -225,6 +248,17 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
                 initialTimeLeft={task.remainingTime ? task.remainingTime * 60 : task.estimatedTime * 60}
                 expired={task.timerExpired}
               />
+              
+              {/* Add Stop Timer Button for running timers */}
+              {task.timerStarted && !task.timerPaused && !task.timerExpired && (
+                <Button 
+                  className="w-full bg-orange-500 hover:bg-orange-600"
+                  onClick={handleTimerStop}
+                >
+                  <Stop className="h-4 w-4 mr-2" />
+                  Pause Timer
+                </Button>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
@@ -243,12 +277,13 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
           )}
         </div>
         
-        <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-between">
-          <div className="flex gap-2">
+        <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-between mt-4">
+          <div className="flex gap-2 flex-col sm:flex-row">
             {task.scheduled && (
               <Button 
                 variant="outline" 
-                onClick={onUnschedule}
+                onClick={handleUnschedule}
+                className="w-full sm:w-auto"
               >
                 Return to Task Board
               </Button>
@@ -256,14 +291,15 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
             
             <Button 
               variant="destructive" 
-              onClick={onComplete}
+              onClick={handleComplete}
+              className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
             >
               <CheckCircle className="h-4 w-4 mr-1" />
               Mark as Completed
             </Button>
           </div>
           
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} className="w-full sm:w-auto">
             Save Changes
           </Button>
         </DialogFooter>

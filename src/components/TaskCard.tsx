@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Task } from "@/lib/types";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, CheckCircle, SignalLow, SignalMedium, SignalHigh, Flame } from "lucide-react";
+import { Clock, CheckCircle, SignalLow, SignalMedium, SignalHigh, Flame, TimerReset } from "lucide-react";
 
 interface TaskCardProps {
   task: Task;
@@ -34,6 +34,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick }) => {
     }
   };
 
+  const showRemainingTime = task.timerStarted && !task.completed && (task.remainingTime !== undefined);
+
   return (
     <Card 
       className={cn(
@@ -43,7 +45,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick }) => {
         task.priority === "low" && "priority-low",
         task.priority === "medium" && "priority-medium",
         task.priority === "high" && "priority-high",
-        task.priority === "critical" && "priority-critical"
+        task.priority === "critical" && "priority-critical",
+        task.timerStarted && !task.timerPaused && !task.completed && "border border-purple-500 shadow-md"
       )}
       onClick={onClick}
     >
@@ -53,7 +56,15 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick }) => {
             {getPriorityIcon()}
             <h3 className="font-medium text-sm">{task.title}</h3>
           </div>
-          {task.completed && <CheckCircle className="h-4 w-4 text-green-600" />}
+          <div className="flex items-center gap-1">
+            {showRemainingTime && (
+              <div className="flex items-center bg-gray-100 rounded px-1 py-0.5 text-xs">
+                <TimerReset className="h-3 w-3 mr-0.5 text-purple-600" />
+                <span>{formatTime(task.remainingTime || 0)}</span>
+              </div>
+            )}
+            {task.completed && <CheckCircle className="h-4 w-4 text-green-600" />}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="p-3 pt-2">
@@ -80,6 +91,16 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick }) => {
         {task.scheduled && (
           <Badge variant="outline" className="text-xs">
             Scheduled
+          </Badge>
+        )}
+        {task.timerStarted && !task.timerPaused && !task.completed && (
+          <Badge className="text-xs bg-purple-500 animate-pulse">
+            Running
+          </Badge>
+        )}
+        {task.timerStarted && task.timerPaused && !task.completed && (
+          <Badge className="text-xs bg-orange-500">
+            Paused
           </Badge>
         )}
       </CardFooter>

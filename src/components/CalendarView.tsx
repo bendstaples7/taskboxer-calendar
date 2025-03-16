@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from "react";
 import { 
   format, 
@@ -76,10 +77,23 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     updateTimeIndicator();
     const interval = setInterval(updateTimeIndicator, 60000); // update every minute
     
-    // Scroll to current time on initial render
-    setTimeout(updateTimeIndicator, 100);
+    // Force scroll to current time on initial render with a delay to ensure DOM is ready
+    const scrollTimer = setTimeout(() => {
+      updateTimeIndicator();
+      if (scrollAreaRef.current) {
+        const now = new Date();
+        const hours = getHours(now);
+        const minutes = getMinutes(now);
+        const position = hours * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT;
+        const scrollPosition = Math.max(0, position - 200);
+        scrollAreaRef.current.scrollTop = scrollPosition;
+      }
+    }, 300);
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(scrollTimer);
+    };
   }, []);
 
   // Notify parent component when date changes
@@ -88,6 +102,30 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       onDateChange(currentDate);
     }
   }, [currentDate, onDateChange]);
+
+  // Add an additional useEffect to ensure scroll position is set after component is fully rendered
+  useEffect(() => {
+    const forceScrollToCurrentTime = () => {
+      if (scrollAreaRef.current) {
+        const now = new Date();
+        const hours = getHours(now);
+        const minutes = getMinutes(now);
+        const position = hours * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT;
+        const scrollPosition = Math.max(0, position - 200);
+        scrollAreaRef.current.scrollTop = scrollPosition;
+      }
+    };
+
+    // Try multiple times to ensure it works
+    forceScrollToCurrentTime();
+    const timer1 = setTimeout(forceScrollToCurrentTime, 500);
+    const timer2 = setTimeout(forceScrollToCurrentTime, 1000);
+    
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [scrollAreaRef.current]);
 
   const goToPreviousDay = () => {
     setCurrentDate(prev => addDays(prev, -1));
@@ -107,6 +145,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   const goToToday = () => {
     setCurrentDate(new Date());
+    // Force scroll to current time when going to today
+    setTimeout(() => {
+      if (scrollAreaRef.current) {
+        const now = new Date();
+        const hours = getHours(now);
+        const minutes = getMinutes(now);
+        const position = hours * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT;
+        const scrollPosition = Math.max(0, position - 200);
+        scrollAreaRef.current.scrollTop = scrollPosition;
+      }
+    }, 100);
   };
 
   const handleDragOver = (e: React.DragEvent, day: Date, hour: number) => {
@@ -181,7 +230,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         style={{
           top: `${top}px`,
           height: `${height}px`,
-          zIndex: 1, // Ensure calendar items are behind time labels
+          zIndex: 5, // Ensure calendar items are above time labels
         }}
         onClick={isTask && onTaskClick ? () => onTaskClick(item as Task) : undefined}
       >
@@ -252,7 +301,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, currentDate, hour)}
                 >
-                  <div className="absolute left-0 text-xs text-gray-400 -mt-2 ml-1" style={{ zIndex: 2 }}>
+                  <div className="absolute left-0 text-xs text-gray-400 -mt-2 ml-1" style={{ zIndex: 10 }}>
                     {hour}:00
                   </div>
                 </div>
@@ -262,7 +311,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               {isSameDay(currentDate, new Date()) && (
                 <div 
                   className="current-time-indicator"
-                  style={{ top: `${currentTimePosition}px`, zIndex: 3 }}
+                  style={{ top: `${currentTimePosition}px`, zIndex: 15 }}
                 />
               )}
 
@@ -304,7 +353,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, day, hour)}
                   >
-                    <div className="absolute left-0 text-xs text-gray-400 -mt-2 ml-1" style={{ zIndex: 2 }}>
+                    <div className="absolute left-0 text-xs text-gray-400 -mt-2 ml-1" style={{ zIndex: 10 }}>
                       {hour}:00
                     </div>
                   </div>
@@ -314,7 +363,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 {isSameDay(day, new Date()) && (
                   <div 
                     className="current-time-indicator"
-                    style={{ top: `${currentTimePosition}px`, zIndex: 3 }}
+                    style={{ top: `${currentTimePosition}px`, zIndex: 15 }}
                   />
                 )}
 
@@ -413,7 +462,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, day, hour)}
                     >
-                      <div className="absolute left-0 text-xs text-gray-400 -mt-2 ml-1" style={{ zIndex: 2 }}>
+                      <div className="absolute left-0 text-xs text-gray-400 -mt-2 ml-1" style={{ zIndex: 10 }}>
                         {hour}:00
                       </div>
                     </div>
@@ -423,7 +472,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   {isSameDay(day, new Date()) && (
                     <div 
                       className="current-time-indicator"
-                      style={{ top: `${currentTimePosition}px`, zIndex: 3 }}
+                      style={{ top: `${currentTimePosition}px`, zIndex: 15 }}
                     />
                   )}
 
