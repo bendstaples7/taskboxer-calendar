@@ -27,6 +27,8 @@ export interface Task {
   remainingTime?: number; // Remaining time in minutes (for partially completed tasks)
   // Google Calendar integration
   googleEventId?: string; // ID of the corresponding Google Calendar event
+  // Position for drag-and-drop ordering
+  position?: number;
 }
 
 export interface CalendarEvent {

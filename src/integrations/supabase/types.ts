@@ -9,7 +9,126 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      task_label_relations: {
+        Row: {
+          id: string
+          label_id: string
+          task_id: string
+        }
+        Insert: {
+          id?: string
+          label_id: string
+          task_id: string
+        }
+        Update: {
+          id?: string
+          label_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_label_relations_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "task_labels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_label_relations_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_labels: {
+        Row: {
+          color: string
+          created_at: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color: string
+          created_at?: string | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          end_time: string | null
+          estimated_time: number | null
+          google_event_id: string | null
+          id: string
+          position: number | null
+          priority: string | null
+          remaining_time: number | null
+          start_time: string | null
+          status: string | null
+          timer_elapsed: number | null
+          timer_expired: boolean | null
+          timer_paused: string | null
+          timer_started: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          end_time?: string | null
+          estimated_time?: number | null
+          google_event_id?: string | null
+          id?: string
+          position?: number | null
+          priority?: string | null
+          remaining_time?: number | null
+          start_time?: string | null
+          status?: string | null
+          timer_elapsed?: number | null
+          timer_expired?: boolean | null
+          timer_paused?: string | null
+          timer_started?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          end_time?: string | null
+          estimated_time?: number | null
+          google_event_id?: string | null
+          id?: string
+          position?: number | null
+          priority?: string | null
+          remaining_time?: number | null
+          start_time?: string | null
+          status?: string | null
+          timer_elapsed?: number | null
+          timer_expired?: boolean | null
+          timer_paused?: string | null
+          timer_started?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

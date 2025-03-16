@@ -1,5 +1,5 @@
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { Task, Label, Priority } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -23,7 +23,14 @@ const taskToDbModel = (task: Task, userId: string) => {
     status,
     start_time: task.scheduled?.start ? new Date(task.scheduled.start).toISOString() : null,
     end_time: task.scheduled?.end ? new Date(task.scheduled.end).toISOString() : null,
-    position: 0, // To be implemented for position ordering
+    estimated_time: task.estimatedTime,
+    remaining_time: task.remainingTime || null,
+    position: task.position || 0,
+    timer_started: task.timerStarted ? new Date(task.timerStarted).toISOString() : null,
+    timer_paused: task.timerPaused ? new Date(task.timerPaused).toISOString() : null,
+    timer_elapsed: task.timerElapsed || null,
+    timer_expired: task.timerExpired || null,
+    google_event_id: task.googleEventId || null,
     updated_at: new Date().toISOString(),
   };
 };
@@ -35,17 +42,22 @@ const dbModelToTask = (dbTask: any, labels: Label[] = []): Task => {
     title: dbTask.title,
     description: dbTask.description || '',
     priority: dbTask.priority as Priority,
-    estimatedTime: dbTask.end_time && dbTask.start_time 
-      ? Math.round((new Date(dbTask.end_time).getTime() - new Date(dbTask.start_time).getTime()) / (1000 * 60))
-      : 30,
+    estimatedTime: dbTask.estimated_time || 30,
     completed: dbTask.status === 'completed',
     labels,
+    position: dbTask.position || 0,
     scheduled: dbTask.start_time && dbTask.end_time
       ? { 
           start: new Date(dbTask.start_time), 
           end: new Date(dbTask.end_time) 
         }
       : undefined,
+    timerStarted: dbTask.timer_started ? new Date(dbTask.timer_started) : undefined,
+    timerPaused: dbTask.timer_paused ? new Date(dbTask.timer_paused) : undefined,
+    timerElapsed: dbTask.timer_elapsed || undefined,
+    timerExpired: dbTask.timer_expired || undefined,
+    remainingTime: dbTask.remaining_time || undefined,
+    googleEventId: dbTask.google_event_id || undefined,
   };
 };
 
@@ -251,5 +263,25 @@ export const createLabel = async (label: Label, userId = DEFAULT_USER_ID): Promi
   } catch (error) {
     console.error('Error creating label:', error);
     return null;
+  }
+};
+
+export const updateTaskPositions = async (tasks: Task[], userId = DEFAULT_USER_ID): Promise<boolean> => {
+  try {
+    const updates = tasks.map(task => ({
+      id: task.id,
+      position: task.position || 0,
+      user_id: userId
+    }));
+
+    const { error } = await supabase
+      .from('tasks')
+      .upsert(updates, { onConflict: 'id' });
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error updating task positions:', error);
+    return false;
   }
 };

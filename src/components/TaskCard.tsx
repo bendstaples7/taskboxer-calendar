@@ -46,7 +46,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick }) => {
         task.priority === "medium" && "priority-medium",
         task.priority === "high" && "priority-high",
         task.priority === "critical" && "priority-critical",
-        task.timerStarted && !task.timerPaused && !task.completed && "border border-purple-500 shadow-md"
+        task.timerStarted && !task.timerPaused && !task.completed && "border border-purple-500 shadow-md",
+        task.completed && "border border-green-500 bg-green-50 opacity-80"
       )}
       onClick={onClick}
     >

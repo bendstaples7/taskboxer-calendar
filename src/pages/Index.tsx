@@ -19,96 +19,23 @@ import {
 } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { addMinutes } from "date-fns";
+import { 
+  fetchTasks, 
+  createTask, 
+  updateTask, 
+  deleteTask, 
+  fetchLabels, 
+  createLabel,
+  updateTaskPositions 
+} from "@/services/taskService";
 
-const initialLabels: Label[] = [
-  { id: uuidv4(), name: "Work", color: "#3B82F6" },
-  { id: uuidv4(), name: "Personal", color: "#EC4899" },
-  { id: uuidv4(), name: "Urgent", color: "#EF4444" },
-  { id: uuidv4(), name: "Important", color: "#F59E0B" },
-];
-
-const initialTasks: Task[] = [
-  {
-    id: uuidv4(),
-    title: "Complete project proposal",
-    description: "Finish the proposal for the new client project",
-    priority: "high",
-    estimatedTime: 120,
-    completed: false,
-    labels: [initialLabels[0], initialLabels[3]],
-  },
-  {
-    id: uuidv4(),
-    title: "Review analytics report",
-    description: "Go through the quarterly analytics and prepare summary",
-    priority: "medium",
-    estimatedTime: 60,
-    completed: false,
-    labels: [initialLabels[0]],
-  },
-  {
-    id: uuidv4(),
-    title: "Plan weekend trip",
-    description: "Research destinations and accommodations",
-    priority: "low",
-    estimatedTime: 45,
-    completed: false,
-    labels: [initialLabels[1]],
-  },
-  {
-    id: uuidv4(),
-    title: "Fix critical bug in production",
-    description: "Users are experiencing login issues in the live environment",
-    priority: "critical",
-    estimatedTime: 90,
-    completed: false,
-    labels: [initialLabels[0], initialLabels[2]],
-  },
-];
-
-const initialEvents: CalendarEvent[] = [
-  {
-    id: uuidv4(),
-    title: "Team Meeting",
-    start: new Date(new Date().setHours(10, 0, 0, 0)),
-    end: new Date(new Date().setHours(11, 0, 0, 0)),
-    isGoogleEvent: true,
-  },
-  {
-    id: uuidv4(),
-    title: "Lunch with Sarah",
-    start: new Date(new Date().setHours(12, 30, 0, 0)),
-    end: new Date(new Date().setHours(13, 30, 0, 0)),
-    isGoogleEvent: true,
-  },
-  {
-    id: uuidv4(),
-    title: "Doctor Appointment",
-    start: addMinutes(new Date().setHours(15, 0, 0, 0), 1440), // Tomorrow
-    end: addMinutes(new Date().setHours(16, 0, 0, 0), 1440),    // Tomorrow
-    isGoogleEvent: true,
-  },
-];
-
-const loadTasksFromStorage = () => {
-  try {
-    const savedTasks = localStorage.getItem('shinko-tasks');
-    return savedTasks ? JSON.parse(savedTasks, (key, value) => {
-      if (key === 'start' || key === 'end' || key === 'timerStarted' || key === 'timerPaused') {
-        return value ? new Date(value) : null;
-      }
-      return value;
-    }) : initialTasks;
-  } catch (error) {
-    console.error('Error loading tasks from storage', error);
-    return initialTasks;
-  }
-};
+// Set document title
+document.title = "shinkō";
 
 const Index = () => {
-  const [tasks, setTasks] = useState<Task[]>(loadTasksFromStorage());
-  const [labels, setLabels] = useState<Label[]>(initialLabels);
-  const [events, setEvents] = useState<CalendarEvent[]>(initialEvents);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [labels, setLabels] = useState<Label[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [addTaskDialogOpen, setAddTaskDialogOpen] = useState(false);
   const [initialPriority, setInitialPriority] = useState<Priority>('medium');
   const [draggingTask, setDraggingTask] = useState<Task | null>(null);
@@ -119,6 +46,7 @@ const Index = () => {
   const [taskboardExpanded, setTaskboardExpanded] = useState(false);
   const [activeTasks, setActiveTasks] = useState<Task[]>([]);
   const [collapsedSections, setCollapsedSections] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   const { 
@@ -131,10 +59,24 @@ const Index = () => {
     syncTasksWithCalendar
   } = useGoogleCalendarSync();
 
+  // Load tasks and labels from Supabase
   useEffect(() => {
-    localStorage.setItem('shinko-tasks', JSON.stringify(tasks));
-  }, [tasks]);
+    const loadData = async () => {
+      setIsLoading(true);
+      const [tasksData, labelsData] = await Promise.all([
+        fetchTasks(),
+        fetchLabels()
+      ]);
+      
+      setTasks(tasksData);
+      setLabels(labelsData);
+      setIsLoading(false);
+    };
+    
+    loadData();
+  }, []);
 
+  // Update active tasks
   useEffect(() => {
     const interval = setInterval(() => {
       setTasks(prev => prev.map(task => {
@@ -144,7 +86,10 @@ const Index = () => {
           const elapsedMinutes = elapsedMs / (1000 * 60);
           
           if (elapsedMinutes >= task.estimatedTime) {
-            return { ...task, timerExpired: true };
+            // Update the task in Supabase
+            const updatedTask = { ...task, timerExpired: true };
+            updateTask(updatedTask);
+            return updatedTask;
           }
         }
         return task;
@@ -164,29 +109,47 @@ const Index = () => {
   useEffect(() => {
     const now = new Date();
     
-    setTasks(prev => prev.map(task => {
-      if (
-        task.scheduled && 
-        !task.timerStarted && 
-        !task.completed && 
-        new Date(task.scheduled.end) < now
-      ) {
-        return { ...task, scheduled: undefined };
-      }
-      return task;
-    }));
+    setTasks(prev => {
+      const updatedTasks = prev.map(task => {
+        if (
+          task.scheduled && 
+          !task.timerStarted && 
+          !task.completed && 
+          new Date(task.scheduled.end) < now
+        ) {
+          return { ...task, scheduled: undefined };
+        }
+        return task;
+      });
+      
+      // Update any changed tasks in Supabase
+      updatedTasks.forEach(task => {
+        const originalTask = prev.find(t => t.id === task.id);
+        if (originalTask && JSON.stringify(originalTask) !== JSON.stringify(task)) {
+          updateTask(task);
+        }
+      });
+      
+      return updatedTasks;
+    });
   }, []);
 
-  const handleAddTask = (task: Task) => {
-    setTasks(prev => [...prev, task]);
-    toast({
-      title: "Task added",
-      description: `"${task.title}" has been added to ${task.priority} priority.`,
-    });
+  const handleAddTask = async (task: Task) => {
+    const newTask = await createTask(task);
+    if (newTask) {
+      setTasks(prev => [...prev, newTask]);
+      toast({
+        title: "Task added",
+        description: `"${task.title}" has been added to ${task.priority} priority.`,
+      });
+    }
   };
 
-  const handleAddLabel = (label: Label) => {
-    setLabels(prev => [...prev, label]);
+  const handleAddLabel = async (label: Label) => {
+    const newLabel = await createLabel(label);
+    if (newLabel) {
+      setLabels(prev => [...prev, newLabel]);
+    }
   };
 
   const handleTaskSchedule = async (task: Task, startTime: Date) => {
@@ -198,10 +161,12 @@ const Index = () => {
     
     if (isInitialized) {
       const taskWithGoogleId = await addTaskToCalendar(updatedTask);
+      await updateTask(taskWithGoogleId);
       setTasks(prev => prev.map(t => 
         t.id === task.id ? taskWithGoogleId : t
       ));
     } else {
+      await updateTask(updatedTask);
       setTasks(prev => prev.map(t => 
         t.id === task.id ? updatedTask : t
       ));
@@ -214,26 +179,33 @@ const Index = () => {
   };
 
   const handleResizeTask = async (taskId: string, newDuration: number) => {
-    setTasks(prev => prev.map(task => {
-      if (task.id === taskId && task.scheduled) {
-        const newEnd = addMinutes(new Date(task.scheduled.start), newDuration);
-        const updatedTask = { 
-          ...task, 
-          remainingTime: newDuration,
-          scheduled: { 
-            ...task.scheduled, 
-            end: newEnd 
-          } 
-        };
-        
-        if (isInitialized && task.googleEventId) {
-          updateTaskInCalendar(updatedTask);
+    setTasks(prev => {
+      const updatedTasks = prev.map(task => {
+        if (task.id === taskId && task.scheduled) {
+          const newEnd = addMinutes(new Date(task.scheduled.start), newDuration);
+          const updatedTask = { 
+            ...task, 
+            remainingTime: newDuration,
+            scheduled: { 
+              ...task.scheduled, 
+              end: newEnd 
+            } 
+          };
+          
+          if (isInitialized && task.googleEventId) {
+            updateTaskInCalendar(updatedTask);
+          }
+          
+          // Update in Supabase
+          updateTask(updatedTask);
+          
+          return updatedTask;
         }
-        
-        return updatedTask;
-      }
-      return task;
-    }));
+        return task;
+      });
+      
+      return updatedTasks;
+    });
   };
 
   const handleTaskUnschedule = async (taskId: string) => {
@@ -243,10 +215,22 @@ const Index = () => {
       await removeTaskFromCalendar(taskToUnschedule);
     }
     
+    const updatedTask = { 
+      ...taskToUnschedule, 
+      scheduled: undefined, 
+      timerStarted: undefined, 
+      timerPaused: undefined, 
+      timerElapsed: undefined, 
+      timerExpired: undefined, 
+      googleEventId: undefined 
+    };
+    
+    if (updatedTask) {
+      await updateTask(updatedTask);
+    }
+    
     setTasks(prev => prev.map(t => 
-      t.id === taskId 
-        ? { ...t, scheduled: undefined, timerStarted: undefined, timerPaused: undefined, timerElapsed: undefined, timerExpired: undefined, googleEventId: undefined } 
-        : t
+      t.id === taskId ? updatedTask : t
     ));
 
     toast({
@@ -262,10 +246,19 @@ const Index = () => {
       await removeTaskFromCalendar(taskToComplete);
     }
     
+    const updatedTask = { 
+      ...taskToComplete, 
+      completed: true, 
+      timerExpired: false, 
+      googleEventId: undefined 
+    };
+    
+    if (updatedTask) {
+      await updateTask(updatedTask);
+    }
+    
     setTasks(prev => prev.map(t => 
-      t.id === taskId 
-        ? { ...t, completed: true, timerExpired: false, googleEventId: undefined } 
-        : t
+      t.id === taskId ? updatedTask : t
     ));
 
     toast({
@@ -284,6 +277,8 @@ const Index = () => {
       await updateTaskInCalendar(updatedTask);
     }
     
+    await updateTask(updatedTask);
+    
     setTasks(prev => prev.map(t => 
       t.id === updatedTask.id ? updatedTask : t
     ));
@@ -294,7 +289,7 @@ const Index = () => {
     });
   };
 
-  const handleStartTimer = (taskId: string) => {
+  const handleStartTimer = async (taskId: string) => {
     const taskToStart = tasks.find(t => t.id === taskId);
     
     if (taskToStart) {
@@ -315,12 +310,13 @@ const Index = () => {
         
         // If connected to Google Calendar, add to calendar
         if (isInitialized) {
-          addTaskToCalendar(updatedTask).then(taskWithGoogleId => {
-            setTasks(prev => prev.map(t => 
-              t.id === taskId ? taskWithGoogleId : t
-            ));
-          });
+          const taskWithGoogleId = await addTaskToCalendar(updatedTask);
+          await updateTask(taskWithGoogleId);
+          setTasks(prev => prev.map(t => 
+            t.id === taskId ? taskWithGoogleId : t
+          ));
         } else {
+          await updateTask(updatedTask);
           setTasks(prev => prev.map(t => 
             t.id === taskId ? updatedTask : t
           ));
@@ -335,31 +331,48 @@ const Index = () => {
       }
       
       // If already scheduled, just start the timer
+      const updatedTask = { 
+        ...taskToStart, 
+        timerStarted: currentTime, 
+        timerPaused: undefined 
+      };
+      
+      await updateTask(updatedTask);
+      
       setTasks(prev => prev.map(task => {
         if (task.id === taskId) {
-          return { ...task, timerStarted: new Date(), timerPaused: undefined };
+          return updatedTask;
         }
         return task;
       }));
     }
   };
 
-  const handleStopTimer = (taskId: string) => {
-    setTasks(prev => prev.map(task => {
-      if (task.id === taskId && task.timerStarted) {
-        const elapsedMs = Date.now() - new Date(task.timerStarted).getTime();
-        const newElapsedMinutes = Math.floor(elapsedMs / (1000 * 60));
-        const totalElapsed = (task.timerElapsed || 0) + newElapsedMinutes;
-        
-        return { 
-          ...task, 
-          timerPaused: new Date(),
-          timerElapsed: totalElapsed,
-          remainingTime: Math.max(0, task.estimatedTime - totalElapsed)
-        };
-      }
-      return task;
-    }));
+  const handleStopTimer = async (taskId: string) => {
+    setTasks(prev => {
+      const updatedTasks = prev.map(task => {
+        if (task.id === taskId && task.timerStarted) {
+          const elapsedMs = Date.now() - new Date(task.timerStarted).getTime();
+          const newElapsedMinutes = Math.floor(elapsedMs / (1000 * 60));
+          const totalElapsed = (task.timerElapsed || 0) + newElapsedMinutes;
+          
+          const updatedTask = { 
+            ...task, 
+            timerPaused: new Date(),
+            timerElapsed: totalElapsed,
+            remainingTime: Math.max(0, task.estimatedTime - totalElapsed)
+          };
+          
+          // Update in Supabase
+          updateTask(updatedTask);
+          
+          return updatedTask;
+        }
+        return task;
+      });
+      
+      return updatedTasks;
+    });
 
     toast({
       title: "Timer paused",
@@ -367,10 +380,73 @@ const Index = () => {
     });
   };
 
-  const handleTaskMove = (taskId: string, newPriority: Priority) => {
-    setTasks(prev => prev.map(task => 
-      task.id === taskId ? { ...task, priority: newPriority } : task
-    ));
+  const handleTaskMove = async (taskId: string, newPriority: Priority, newPosition?: number) => {
+    setTasks(prev => {
+      const updatedTasks = [...prev];
+      const taskIndex = updatedTasks.findIndex(t => t.id === taskId);
+      
+      if (taskIndex === -1) return prev;
+      
+      const taskToMove = { ...updatedTasks[taskIndex] };
+      const oldPriority = taskToMove.priority;
+      
+      // If just changing priority
+      if (oldPriority !== newPriority && newPosition === undefined) {
+        taskToMove.priority = newPriority;
+        updatedTasks[taskIndex] = taskToMove;
+        
+        // Update task in Supabase
+        updateTask(taskToMove);
+        
+        return updatedTasks;
+      }
+      
+      // If reordering within the same priority or changing priority with specific position
+      updatedTasks.splice(taskIndex, 1); // Remove task from its current position
+      
+      if (newPosition !== undefined) {
+        taskToMove.priority = newPriority;
+        
+        // Get all tasks of the new priority
+        const priorityTasks = updatedTasks
+          .filter(t => t.priority === newPriority && !t.scheduled && !t.completed)
+          .sort((a, b) => (a.position || 0) - (b.position || 0));
+        
+        // Insert task at the new position
+        priorityTasks.splice(Math.min(newPosition, priorityTasks.length), 0, taskToMove);
+        
+        // Update positions for all priority tasks
+        const updatedPriorityTasks = priorityTasks.map((task, index) => ({
+          ...task,
+          position: index
+        }));
+        
+        // Replace all tasks of this priority with the updated ones
+        updatedTasks.forEach((task, i) => {
+          if (task.priority === newPriority && !task.scheduled && !task.completed) {
+            const updatedTask = updatedPriorityTasks.find(t => t.id === task.id);
+            if (updatedTask) {
+              updatedTasks[i] = updatedTask;
+            }
+          }
+        });
+        
+        // Insert the moved task
+        updatedTasks.push(...updatedPriorityTasks.filter(t => !updatedTasks.some(task => task.id === t.id)));
+        
+        // Update positions in Supabase
+        updateTaskPositions(updatedPriorityTasks);
+      } else {
+        // Just change priority without specific position
+        taskToMove.priority = newPriority;
+        updatedTasks.push(taskToMove);
+        
+        // Update task in Supabase
+        updateTask(taskToMove);
+      }
+      
+      return updatedTasks;
+    });
 
     toast({
       title: "Task moved",
@@ -378,35 +454,44 @@ const Index = () => {
     });
   };
 
-  const handleAddTime = (taskId: string, minutes: number) => {
-    setTasks(prev => prev.map(task => {
-      if (task.id === taskId) {
-        const newEstimatedTime = task.estimatedTime + minutes;
-        let newEnd = task.scheduled?.end;
-        
-        if (task.scheduled) {
-          newEnd = addMinutes(new Date(task.scheduled.start), newEstimatedTime);
+  const handleAddTime = async (taskId: string, minutes: number) => {
+    setTasks(prev => {
+      const updatedTasks = prev.map(task => {
+        if (task.id === taskId) {
+          const newEstimatedTime = task.estimatedTime + minutes;
+          let newEnd = task.scheduled?.end;
           
-          if (isInitialized && task.googleEventId) {
-            const updatedTask = { 
-              ...task, 
-              estimatedTime: newEstimatedTime,
-              timerExpired: false,
-              scheduled: { ...task.scheduled, end: newEnd } 
-            };
-            updateTaskInCalendar(updatedTask);
+          if (task.scheduled) {
+            newEnd = addMinutes(new Date(task.scheduled.start), newEstimatedTime);
+            
+            if (isInitialized && task.googleEventId) {
+              const updatedTask = { 
+                ...task, 
+                estimatedTime: newEstimatedTime,
+                timerExpired: false,
+                scheduled: { ...task.scheduled, end: newEnd } 
+              };
+              updateTaskInCalendar(updatedTask);
+            }
           }
+          
+          const updatedTask = { 
+            ...task, 
+            estimatedTime: newEstimatedTime,
+            timerExpired: false,
+            scheduled: task.scheduled ? { ...task.scheduled, end: newEnd } : undefined
+          };
+          
+          // Update in Supabase
+          updateTask(updatedTask);
+          
+          return updatedTask;
         }
-        
-        return { 
-          ...task, 
-          estimatedTime: newEstimatedTime,
-          timerExpired: false,
-          scheduled: task.scheduled ? { ...task.scheduled, end: newEnd } : undefined
-        };
-      }
-      return task;
-    }));
+        return task;
+      });
+      
+      return updatedTasks;
+    });
 
     toast({
       title: "Time added",
@@ -449,8 +534,7 @@ const Index = () => {
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
             <h1 className="text-2xl font-bold flex items-center font-['Noto_Sans_JP',_sans-serif]">
-              <img src="/lovable-uploads/f43f9967-69ed-4047-bfc3-f619d50d3d40.png" alt="Shinko Logo" className="h-8 w-auto mr-2" />
-              shinkō
+              <img src="/lovable-uploads/f43f9967-69ed-4047-bfc3-f619d50d3d40.png" alt="Shinko Logo" className="h-10 w-auto" />
             </h1>
             <div className="flex gap-2">
               <Button 
@@ -492,7 +576,11 @@ const Index = () => {
                 onOpenTask={handleTaskClick}
               />
             )}
-            <Button onClick={() => setAddTaskDialogOpen(true)} className="bg-purple-600 hover:bg-purple-700">
+            <Button onClick={() => {
+              setAddTaskDialogOpen(true);
+              // Default to medium priority when adding from header
+              setInitialPriority('medium');
+            }} className="bg-purple-600 hover:bg-purple-700">
               <Plus className="h-4 w-4 mr-1" />
               Add Task
             </Button>
@@ -518,6 +606,7 @@ const Index = () => {
               onTaskClick={handleTaskClick}
               onDateChange={handleCalendarDateChange}
               minimized={!calendarExpanded}
+              scrollToCurrentTime={true}
             />
           </AnimatedPanel>
           

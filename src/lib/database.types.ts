@@ -21,6 +21,13 @@ export interface Database {
           start_time: string | null
           end_time: string | null
           position: number | null
+          estimated_time: number | null
+          remaining_time: number | null
+          timer_started: string | null
+          timer_paused: string | null
+          timer_elapsed: number | null
+          timer_expired: boolean | null
+          google_event_id: string | null
           created_at: string
           updated_at: string
         }
@@ -34,6 +41,13 @@ export interface Database {
           start_time?: string | null
           end_time?: string | null
           position?: number | null
+          estimated_time?: number | null
+          remaining_time?: number | null
+          timer_started?: string | null
+          timer_paused?: string | null
+          timer_elapsed?: number | null
+          timer_expired?: boolean | null
+          google_event_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -47,6 +61,13 @@ export interface Database {
           start_time?: string | null
           end_time?: string | null
           position?: number | null
+          estimated_time?: number | null
+          remaining_time?: number | null
+          timer_started?: string | null
+          timer_paused?: string | null
+          timer_elapsed?: number | null
+          timer_expired?: boolean | null
+          google_event_id?: string | null
           created_at?: string
           updated_at?: string
         }

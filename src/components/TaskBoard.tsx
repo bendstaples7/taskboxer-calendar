@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Task, Priority } from "@/lib/types";
 import TaskCard from "./TaskCard";
 import { Button } from "@/components/ui/button";
@@ -26,9 +26,13 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
   onToggleSection = () => {},
 }) => {
   const priorities: Priority[] = ["critical", "high", "medium", "low"];
+  const [dragOverPriority, setDragOverPriority] = useState<Priority | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   
   const getPriorityTasks = (priority: Priority) => {
-    return tasks.filter(task => task.priority === priority && !task.scheduled && !task.completed);
+    return tasks
+      .filter(task => task.priority === priority && !task.scheduled && !task.completed)
+      .sort((a, b) => (a.position || 0) - (b.position || 0));
   };
 
   const getScheduledTasks = () => {
@@ -45,23 +49,29 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
     onDragStart(task);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent, priority: Priority, index?: number) => {
     e.preventDefault();
     e.currentTarget.classList.add('droppable-active');
+    setDragOverPriority(priority);
+    setDragOverIndex(index !== undefined ? index : null);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.currentTarget.classList.remove('droppable-active');
+    setDragOverPriority(null);
+    setDragOverIndex(null);
   };
 
-  const handleDrop = (e: React.DragEvent, priority: Priority) => {
+  const handleDrop = (e: React.DragEvent, priority: Priority, dropIndex?: number) => {
     e.preventDefault();
     e.currentTarget.classList.remove('droppable-active');
+    setDragOverPriority(null);
+    setDragOverIndex(null);
     
     try {
       const taskId = e.dataTransfer.getData("taskId");
       if (taskId && onTaskMove) {
-        onTaskMove(taskId, priority);
+        onTaskMove(taskId, priority, dropIndex);
       }
     } catch (error) {
       console.error("Error handling task drop:", error);
@@ -97,15 +107,18 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
           <CollapsibleContent>
             <div 
               className="flex-1 p-2 bg-gray-50 rounded-b-md overflow-y-auto min-h-[200px]"
-              onDragOver={handleDragOver}
+              onDragOver={(e) => handleDragOver(e, priority)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, priority)}
             >
-              {priorityTasks.map(task => (
+              {priorityTasks.map((task, index) => (
                 <div 
                   key={task.id}
                   draggable
                   onDragStart={(e) => handleDragStart(e, task)}
+                  onDragOver={(e) => handleDragOver(e, priority, index)}
+                  onDrop={(e) => handleDrop(e, priority, index)}
+                  className={`relative ${dragOverPriority === priority && dragOverIndex === index ? 'border-t-2 border-purple-500' : ''}`}
                 >
                   <TaskCard 
                     task={task} 
