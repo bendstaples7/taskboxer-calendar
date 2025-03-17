@@ -9,6 +9,7 @@ interface EditableLabelsProps {
   selectedLabels: Label[];
   availableLabels: Label[];
   onUpdate: (labels: Label[]) => void;
+  onAddLabel?: (label: any) => void; // Add missing prop
   disabled?: boolean;
 }
 
@@ -16,6 +17,7 @@ const EditableLabels: React.FC<EditableLabelsProps> = ({
   selectedLabels,
   availableLabels,
   onUpdate,
+  onAddLabel,
   disabled = false
 }) => {
   const [editing, setEditing] = useState(false);

@@ -85,9 +85,11 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({
           {task.timerStarted && !task.completed && (
             <div className="mt-2">
               <p className="text-sm text-muted-foreground mb-1">Time Remaining:</p>
+              {/* Update TaskTimer props to match the component's interface */}
               <TaskTimer 
-                task={task} 
-                onTimerExpired={() => {}}
+                duration={task.estimatedTime}
+                onComplete={() => {}}
+                initialTimeLeft={task.remainingTime ? task.remainingTime * 60 : task.estimatedTime * 60}
                 className={isRunning ? "animate-pulse" : ""}
               />
             </div>

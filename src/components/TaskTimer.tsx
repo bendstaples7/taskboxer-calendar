@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Play, Pause, RotateCcw, CheckCircle, Plus, Minus, Clock, Timer } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
+import { Task } from "@/lib/types";
 
 interface TaskTimerProps {
   duration: number; // in minutes
@@ -14,6 +14,9 @@ interface TaskTimerProps {
   onTimerStop?: () => void;
   initialTimeLeft?: number; // in seconds
   expired?: boolean;
+  className?: string; // Add missing className prop
+  task?: Task; // Add optional task prop for backward compatibility
+  onTimerExpired?: () => void; // Add optional callback for backward compatibility
 }
 
 const TaskTimer: React.FC<TaskTimerProps> = ({ 
@@ -23,9 +26,14 @@ const TaskTimer: React.FC<TaskTimerProps> = ({
   onTimerStart,
   onTimerStop,
   initialTimeLeft,
-  expired = false
+  expired = false,
+  className = "",
+  task, // Added for backward compatibility
+  onTimerExpired // Added for backward compatibility
 }) => {
-  const [timeLeft, setTimeLeft] = useState(initialTimeLeft || duration * 60); // Convert to seconds
+  const effectiveDuration = task ? task.estimatedTime : duration;
+  
+  const [timeLeft, setTimeLeft] = useState(initialTimeLeft || effectiveDuration * 60); // Convert to seconds
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState(100);
   const [adjustMode, setAdjustMode] = useState(false);
@@ -38,17 +46,18 @@ const TaskTimer: React.FC<TaskTimerProps> = ({
       interval = setInterval(() => {
         setTimeLeft(prev => {
           const newTime = prev - 1;
-          setProgress(Math.floor((newTime / (duration * 60)) * 100));
+          setProgress(Math.floor((newTime / (effectiveDuration * 60)) * 100));
           return newTime;
         });
       }, 1000);
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
       onComplete();
+      if (onTimerExpired) onTimerExpired();
     }
 
     return () => clearInterval(interval);
-  }, [isRunning, timeLeft, duration, onComplete]);
+  }, [isRunning, timeLeft, effectiveDuration, onComplete, onTimerExpired]);
 
   const toggleTimer = () => {
     const newRunningState = !isRunning;
@@ -63,7 +72,7 @@ const TaskTimer: React.FC<TaskTimerProps> = ({
 
   const resetTimer = () => {
     setIsRunning(false);
-    setTimeLeft(duration * 60);
+    setTimeLeft(effectiveDuration * 60);
     setProgress(100);
     if (onTimerStop) onTimerStop();
   };
@@ -84,7 +93,7 @@ const TaskTimer: React.FC<TaskTimerProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className={`flex flex-col gap-2 ${className}`}>
       {expired ? (
         <div className="rounded-md bg-yellow-50 p-3 mb-2">
           <h4 className="text-sm font-medium text-yellow-800 mb-2">Time Expired</h4>
@@ -175,7 +184,7 @@ const TaskTimer: React.FC<TaskTimerProps> = ({
                 size="sm" 
                 variant="outline" 
                 onClick={resetTimer}
-                disabled={timeLeft === duration * 60}
+                disabled={timeLeft === effectiveDuration * 60}
               >
                 <RotateCcw className="h-4 w-4" />
               </Button>

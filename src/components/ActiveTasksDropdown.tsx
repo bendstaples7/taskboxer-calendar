@@ -10,15 +10,24 @@ interface ActiveTasksDropdownProps {
   onCompleteTask: (taskId: string) => void;
   onPauseTask: (taskId: string) => void;
   onMoveToBoard: (taskId: string) => void;
+  activeTasks?: Task[]; // Add missing prop to match usage in Index.tsx
+  onOpenTask?: (task: Task) => void; // Add missing prop
+  onAddTime?: (taskId: string, minutes: number) => void; // Add missing prop
 }
 
 const ActiveTasksDropdown: React.FC<ActiveTasksDropdownProps> = ({
   tasks,
   onCompleteTask,
   onPauseTask,
-  onMoveToBoard
+  onMoveToBoard,
+  activeTasks,
+  onOpenTask,
+  onAddTime
 }) => {
-  if (tasks.length === 0) {
+  // Use either activeTasks or tasks based on what's provided
+  const displayTasks = activeTasks || tasks;
+  
+  if (displayTasks.length === 0) {
     return (
       <div className="p-4 text-center text-gray-500">
         No active tasks
@@ -28,14 +37,19 @@ const ActiveTasksDropdown: React.FC<ActiveTasksDropdownProps> = ({
 
   return (
     <div className="p-2 max-h-[300px] overflow-y-auto">
-      {tasks.map(task => (
+      {displayTasks.map(task => (
         <div 
           key={task.id} 
           className="p-2 mb-2 border rounded-md flex items-center justify-between hover:bg-gray-50"
         >
           <div className="flex-1">
             <div className="font-medium">{task.title}</div>
-            <TaskTimer task={task} onTimerExpired={() => {}} />
+            {/* Update TaskTimer props to match the component's interface */}
+            <TaskTimer 
+              duration={task.estimatedTime} 
+              onComplete={() => {}} 
+              initialTimeLeft={task.remainingTime ? task.remainingTime * 60 : task.estimatedTime * 60}
+            />
           </div>
           <div className="flex space-x-1">
             <Button 
