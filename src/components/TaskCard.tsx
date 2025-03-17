@@ -1,4 +1,3 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Task } from "@/lib/types";
@@ -11,9 +10,10 @@ interface TaskCardProps {
   task: Task;
   isDragging?: boolean;
   onClick?: () => void;
+  onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick, onDragStart }) => {
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -39,7 +39,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick }) => {
   
   const isRunning = task.timerStarted && !task.timerPaused && !task.completed && !task.timerExpired;
 
-  // Calculate progress for progress circle
   const getProgress = () => {
     if (task.completed) return 1;
     if (!task.timerStarted) return 0;
@@ -64,6 +63,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick }) => {
         task.completed && "border border-green-500 bg-green-50 opacity-80"
       )}
       onClick={onClick}
+      draggable={!!onDragStart}
+      onDragStart={onDragStart}
     >
       <CardHeader className="p-3 pb-0">
         <div className="flex justify-between items-start">
