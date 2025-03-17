@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar, LogOut, AlertCircle } from 'lucide-react';
 import { useGoogleCalendarService } from '@/services/googleCalendarService';
 import { useToast } from '@/hooks/use-toast';
+import GoogleCalendarInstructions from './GoogleCalendarInstructions';
 
 interface GoogleCalendarConnectProps {
   onEventsLoaded: (events: any[]) => void;
@@ -14,6 +16,8 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [showSetupDialog, setShowSetupDialog] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const googleCalendarService = useGoogleCalendarService();
   
@@ -43,18 +47,41 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
   
   const handleConnect = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const success = await googleCalendarService.signIn();
       setIsConnected(success);
       
       if (success) {
         loadEvents();
+        toast({
+          title: "Connected successfully",
+          description: "Your Google Calendar has been connected.",
+        });
+      } else {
+        setError("Authentication failed. Please try again.");
+        toast({
+          title: "Connection failed",
+          description: "Could not authenticate with Google Calendar.",
+          variant: "destructive",
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error connecting to Google Calendar:", error);
+      
+      // Check for specific error types
+      if (error.error === "popup_closed_by_user") {
+        setError("Sign-in popup was closed. Please try again.");
+      } else if (error.error === "idpiframe_initialization_failed") {
+        setError("Domain not registered in Google Cloud Console");
+        setShowSetupDialog(true);
+      } else {
+        setError(`Sign-in failed: ${error.error || "Could not connect to Google Calendar"}`);
+      }
+      
       toast({
         title: "Connection failed",
-        description: "Could not connect to Google Calendar. See console for details.",
+        description: error.error || "Could not connect to Google Calendar",
         variant: "destructive",
       });
     } finally {
@@ -67,6 +94,7 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
     try {
       await googleCalendarService.signOut();
       setIsConnected(false);
+      setError(null);
       
       toast({
         title: "Disconnected",
@@ -154,6 +182,13 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
         </Button>
       </div>
       
+      {error && (
+        <div className="mt-2 text-sm text-red-500 flex items-start gap-1">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+      
       {showInstructions && (
         <div className="mt-2 p-3 bg-gray-50 rounded-md text-sm">
           <h3 className="font-medium mb-1">Troubleshooting Google Calendar Connection</h3>
@@ -187,6 +222,11 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
           </Button>
         </div>
       )}
+      
+      <GoogleCalendarInstructions 
+        open={showSetupDialog} 
+        onOpenChange={setShowSetupDialog} 
+      />
     </div>
   );
 };

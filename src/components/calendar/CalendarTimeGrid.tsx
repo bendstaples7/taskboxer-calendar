@@ -1,46 +1,68 @@
 
 import React from 'react';
-import { cn } from "@/lib/utils";
+import { format } from 'date-fns';
 
 interface CalendarTimeGridProps {
-  hour: number;
-  onDragOver: (e: React.DragEvent) => void;
-  onDragLeave: (e: React.DragEvent) => void;
-  onDrop: (e: React.DragEvent) => void;
+  dayCount?: number;
+  hourStart?: number;
+  hourEnd?: number;
+  columnWidth?: number;
+  hourHeight?: number;
+  isMinimized?: boolean;
 }
 
 const CalendarTimeGrid: React.FC<CalendarTimeGridProps> = ({
-  hour,
-  onDragOver,
-  onDragLeave,
-  onDrop
+  dayCount = 7,
+  hourStart = 0,
+  hourEnd = 24,
+  columnWidth = 100,
+  hourHeight = 60,
+  isMinimized = false
 }) => {
-  // Create 12 five-minute segments for each hour (invisible for drag/drop only)
-  const segments = Array.from({ length: 12 }, (_, i) => i * 5);
+  const hours = Array.from({ length: hourEnd - hourStart }, (_, i) => i + hourStart);
+  const days = Array.from({ length: dayCount }, (_, i) => i);
   
   return (
-    <div 
-      className="border-t relative"
-      style={{ height: `60px` }}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
-    >
-      <div className="absolute left-0 -mt-2 ml-1 px-1 text-xs text-gray-400 bg-white z-10">
-        {hour}:00
-      </div>
-      {/* Five-minute segments - hidden but functional for drag precision */}
-      <div className="absolute w-full h-full grid grid-rows-12">
-        {segments.map((minute, index) => (
+    <div className="calendar-time-grid relative">
+      {/* Time labels */}
+      <div className="calendar-time-labels absolute left-0 top-0 w-14 bg-white z-10">
+        {hours.map(hour => (
           <div 
-            key={index}
-            className={cn(
-              "border-0",
-              // Only make 15 and 30 minute segments visible with very light border
-              (index === 3 || index === 6 || index === 9) && "border-t border-dashed border-gray-100 opacity-30"
-            )}
-            data-minute={minute}
-          />
+            key={hour} 
+            className="font-medium text-xs text-gray-500 flex items-start border-t" 
+            style={{ height: `${hourHeight}px` }}
+          >
+            <span className="mt-[-8px] ml-1">{format(new Date().setHours(hour, 0, 0, 0), 'h a')}</span>
+          </div>
+        ))}
+      </div>
+      
+      {/* Hour grid lines - only show full hour lines */}
+      <div className="calendar-hour-grid absolute left-14 right-0">
+        {hours.map(hour => (
+          <div 
+            key={hour} 
+            className={`border-t ${hour % 1 === 0 ? 'border-gray-300' : 'border-gray-100'}`} 
+            style={{ height: `${hourHeight}px` }}
+          >
+            {/* 5-minute grid lines - hidden by default */}
+            {Array.from({ length: 12 }, (_, i) => i).map(i => (
+              <div 
+                key={i} 
+                className="h-[5px] border-t border-gray-100 opacity-0"
+              ></div>
+            ))}
+          </div>
+        ))}
+      </div>
+      
+      {/* Day columns */}
+      <div 
+        className="calendar-day-columns absolute left-14 right-0 grid" 
+        style={{ gridTemplateColumns: `repeat(${dayCount}, 1fr)` }}
+      >
+        {days.map(day => (
+          <div key={day} className="calendar-day-column h-full border-r"></div>
         ))}
       </div>
     </div>

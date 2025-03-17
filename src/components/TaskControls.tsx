@@ -24,7 +24,7 @@ const TaskControls: React.FC<TaskControlsProps> = ({
   const isRunning = task.timerStarted && !task.timerPaused && !task.completed && !task.timerExpired;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 w-full flex flex-col items-center">
       {isRunning ? (
         <Button 
           className="w-full bg-orange-500 hover:bg-orange-600"
@@ -45,7 +45,7 @@ const TaskControls: React.FC<TaskControlsProps> = ({
         </Button>
       )}
       
-      <div className="flex justify-between gap-2">
+      <div className="flex justify-center gap-2 w-full">
         {task.scheduled && onUnschedule && (
           <Button 
             variant="outline" 

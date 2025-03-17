@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import TaskProgressCircle from './TaskProgressCircle';
 import TaskControls from './TaskControls';
 import { getElapsedMinutes } from '@/lib/timeUtils';
+import { Edit, Check, X } from 'lucide-react';
 
 interface TaskDetailsProps {
   task: Task;
@@ -98,7 +99,7 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="sm:max-w-md max-h-[80vh] overflow-y-auto overflow-x-hidden modal-content"
+        className="sm:max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden modal-content"
         style={{
           boxShadow: isRunning ? `0 0 ${glowStrength}px ${glowColor}` : undefined,
           border: isRunning ? `${borderWidth}px solid ${glowColor}` : undefined,
@@ -258,9 +259,17 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({
           {/* Labels */}
           <div 
             className={`${fieldClassName} ${editingField !== 'labels' ? editableFieldClassName : ''}`}
-            onClick={() => setEditingField('labels')}
           >
-            <label className="text-xs font-medium text-gray-500">Labels</label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-gray-500">Labels</label>
+              <button 
+                className="text-xs text-gray-500 flex items-center"
+                onClick={() => setEditingField('labels')}
+              >
+                <Edit className="h-3 w-3 mr-1" />
+                Edit Labels
+              </button>
+            </div>
             {editingField === 'labels' ? (
               <div className="mt-1 p-2 border rounded">
                 {availableLabels.map(label => (
@@ -299,7 +308,7 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({
                 </Button>
               </div>
             ) : (
-              <div className="flex flex-wrap gap-1 mt-1 group-hover:bg-gray-50 p-2 rounded -m-2 transition-colors relative">
+              <div className="flex flex-wrap gap-1 mt-1">
                 {localTask.labels.length > 0 ? (
                   localTask.labels.map(label => (
                     <span 
@@ -313,9 +322,6 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({
                 ) : (
                   <span className="text-gray-400">No labels</span>
                 )}
-                <div className="absolute inset-0 flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="text-xs text-gray-400 mr-2">Click to edit</span>
-                </div>
               </div>
             )}
           </div>
@@ -332,7 +338,7 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({
           )}
         </div>
         
-        <DialogFooter className="pt-2">
+        <DialogFooter className="pt-2 flex items-center justify-center w-full">
           <TaskControls 
             task={task}
             onStartTimer={onStartTimer}

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Task } from "@/lib/types";
@@ -11,9 +12,20 @@ interface TaskCardProps {
   isDragging?: boolean;
   onClick?: () => void;
   onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void;
+  showStartButton?: boolean;
+  onStartTask?: (taskId: string) => void;
+  isCalendarView?: boolean;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick, onDragStart }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ 
+  task, 
+  isDragging, 
+  onClick, 
+  onDragStart,
+  showStartButton,
+  onStartTask,
+  isCalendarView 
+}) => {
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -49,6 +61,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick, onDragSt
     return Math.min(elapsedMinutes / totalMinutes, 1);
   };
 
+  const handleStartTask = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onStartTask) {
+      onStartTask(task.id);
+    }
+  };
+
   return (
     <Card 
       className={cn(
@@ -59,7 +78,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick, onDragSt
         task.priority === "medium" && "priority-medium",
         task.priority === "high" && "priority-high",
         task.priority === "critical" && "priority-critical",
-        isRunning && "border border-gray-500 shadow-md",
+        isRunning && "border border-gray-500 shadow-md animate-pulse",
         task.completed && "border border-green-500 bg-green-50 opacity-80"
       )}
       onClick={onClick}
@@ -105,21 +124,32 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick, onDragSt
           <TaskProgressCircle progress={getProgress()} size={14} />
           <span>{formatTime(task.estimatedTime)}</span>
         </div>
-        {task.scheduled && !isRunning && (
-          <Badge variant="outline" className="text-xs">
-            Scheduled
-          </Badge>
-        )}
-        {isRunning && (
-          <Badge className="text-xs bg-gray-600 animate-pulse">
-            Running
-          </Badge>
-        )}
-        {task.timerStarted && task.timerPaused && !task.completed && (
-          <Badge className="text-xs bg-orange-500">
-            Paused
-          </Badge>
-        )}
+        <div className="flex items-center gap-1">
+          {task.scheduled && !isRunning && (
+            <Badge variant="outline" className="text-xs">
+              Scheduled
+            </Badge>
+          )}
+          {isRunning && (
+            <Badge className="text-xs bg-gray-600 animate-pulse">
+              Running
+            </Badge>
+          )}
+          {task.timerStarted && task.timerPaused && !task.completed && (
+            <Badge className="text-xs bg-orange-500">
+              Paused
+            </Badge>
+          )}
+          {showStartButton && !isRunning && !task.completed && (
+            <button
+              onClick={handleStartTask}
+              className="bg-gray-200 hover:bg-gray-300 rounded-full p-1 transition-colors"
+              title="Start Task"
+            >
+              <Play className="h-3 w-3 text-gray-700" />
+            </button>
+          )}
+        </div>
       </CardFooter>
     </Card>
   );

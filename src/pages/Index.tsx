@@ -7,7 +7,6 @@ import StackedTaskBoard from "@/components/StackedTaskBoard";
 import CalendarView from "@/components/CalendarView";
 import AnimatedPanel from "@/components/AnimatedPanel";
 import AddTaskDialog from "@/components/AddTaskDialog";
-import EditTaskDialog from "@/components/EditTaskDialog";
 import TaskDetails from "@/components/TaskDetails";
 import ActiveTasksDropdown from "@/components/ActiveTasksDropdown";
 import GoogleCalendarConnect from "@/components/GoogleCalendarConnect";
@@ -50,6 +49,7 @@ const Index = () => {
   const { toast } = useToast();
 
   const [lastToastTimestamp, setLastToastTimestamp] = useState<number>(0);
+  const [lastToastMessage, setLastToastMessage] = useState<string>('');
 
   const { 
     isInitialized, 
@@ -138,10 +138,14 @@ const Index = () => {
 
   const showToast = (title: string, description: string, variant: "default" | "destructive" = "default") => {
     const now = Date.now();
+    const message = `${title}:${description}`;
+    
     // Only show toast if more than 2 seconds have passed since the last one
-    if (now - lastToastTimestamp > 2000) {
+    // or if the message is different from the previous one
+    if ((now - lastToastTimestamp > 2000) || (message !== lastToastMessage)) {
       toast({ title, description, variant });
       setLastToastTimestamp(now);
+      setLastToastMessage(message);
     }
   };
 
@@ -713,7 +717,7 @@ const Index = () => {
           onDelete={() => {
             // Ask for confirmation
             if (window.confirm(`Delete task "${selectedTask.title}"?`)) {
-              if (handleTaskDelete) handleTaskDelete(selectedTask.id);
+              handleTaskDelete(selectedTask.id);
               setTaskDialogOpen(false);
             }
           }}

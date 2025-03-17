@@ -1,21 +1,17 @@
 
-import React from "react";
+import React, { useState } from 'react';
 import { Task, Priority } from "@/lib/types";
+import TaskBoardSection from "./TaskBoardSection";
 import TaskCard from "./TaskCard";
-import { Button } from "@/components/ui/button";
-import { Plus, ChevronDown, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface StackedTaskBoardProps {
   tasks: Task[];
   onTaskClick: (task: Task) => void;
-  onAddTask: (priority: Priority) => void;
-  onDragStart: (task: Task) => void;
+  onAddTask?: (priority: Priority) => void;
+  onDragStart?: (task: Task) => void;
   minimized?: boolean;
-  collapsedSections?: string[];
-  onToggleSection?: (section: string) => void;
+  collapsedSections: string[];
+  onToggleSection: (section: string) => void;
 }
 
 const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
@@ -23,154 +19,141 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
   onTaskClick,
   onAddTask,
   onDragStart,
-  minimized = false,
-  collapsedSections = [],
-  onToggleSection = () => {}
+  minimized = true,
+  collapsedSections,
+  onToggleSection
 }) => {
-  const priorities: Priority[] = ["critical", "high", "medium", "low"];
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   
-  const getPriorityTasks = (priority: Priority) => {
-    return tasks.filter(task => task.priority === priority && !task.scheduled);
-  };
-
-  const getScheduledTasks = () => {
-    return tasks.filter(task => task.scheduled && !task.completed);
-  };
-
-  const handleDragStart = (e: React.DragEvent, task: Task) => {
-    e.dataTransfer.setData("application/json", JSON.stringify(task));
-    onDragStart(task);
-  };
-
-  const renderPrioritySection = (priority: Priority) => {
-    const priorityTasks = getPriorityTasks(priority);
-    if (priorityTasks.length === 0) return null;
+  const criticalTasks = tasks.filter(t => 
+    t.priority === 'critical' && !t.completed && !t.scheduled
+  ).sort((a, b) => (a.position || 0) - (b.position || 0));
+  
+  const highTasks = tasks.filter(t => 
+    t.priority === 'high' && !t.completed && !t.scheduled
+  ).sort((a, b) => (a.position || 0) - (b.position || 0));
+  
+  const mediumTasks = tasks.filter(t => 
+    t.priority === 'medium' && !t.completed && !t.scheduled
+  ).sort((a, b) => (a.position || 0) - (b.position || 0));
+  
+  const lowTasks = tasks.filter(t => 
+    t.priority === 'low' && !t.completed && !t.scheduled
+  ).sort((a, b) => (a.position || 0) - (b.position || 0));
+  
+  const handleTaskDragStart = (e: React.DragEvent, task: Task) => {
+    setDraggedTaskId(task.id);
+    e.dataTransfer.setData('application/json', JSON.stringify(task));
     
-    const capitalizedPriority = priority.charAt(0).toUpperCase() + priority.slice(1);
-    const colorClass = 
-      priority === 'low' ? 'bg-blue-100' : 
-      priority === 'medium' ? 'bg-yellow-100' : 
-      priority === 'high' ? 'bg-orange-100' : 
-      'bg-red-100';
+    // Notify parent
+    if (onDragStart) {
+      onDragStart(task);
+    }
+  };
+  
+  const handleTaskDragOver = (e: React.DragEvent, task: Task, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
     
-    const isCollapsed = collapsedSections.includes(priority);
-
-    return (
-      <Collapsible 
-        key={priority} 
-        className="mb-4"
-        open={!isCollapsed}
-        onOpenChange={() => onToggleSection(priority)}
-      >
-        <CollapsibleTrigger className="w-full">
-          <div className={`p-2 ${colorClass} rounded-t-md font-medium flex justify-between items-center`}>
-            <h2>{capitalizedPriority}</h2>
-            <div className="flex items-center">
-              <span className="bg-gray-100 px-2 rounded-full text-sm mr-2">{priorityTasks.length}</span>
-              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </div>
-          </div>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <div className="p-2 bg-gray-50 rounded-b-md">
-            {priorityTasks.map(task => (
-              <div 
-                key={task.id}
-                draggable
-                onDragStart={(e) => handleDragStart(e, task)}
-              >
-                <TaskCard 
-                  task={task} 
-                  onClick={() => onTaskClick(task)}
-                />
-              </div>
-            ))}
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-    );
+    if (task.id !== draggedTaskId) {
+      setDragOverTaskId(task.id);
+      setDragOverIndex(index);
+    }
   };
-
-  const renderScheduledSection = () => {
-    const scheduledTasks = getScheduledTasks();
-    if (scheduledTasks.length === 0) return null;
-
-    const isCollapsed = collapsedSections.includes('scheduled');
-
-    return (
-      <Collapsible 
-        key="scheduled" 
-        className="mb-4"
-        open={!isCollapsed}
-        onOpenChange={() => onToggleSection('scheduled')}
-      >
-        <CollapsibleTrigger className="w-full">
-          <div className="p-2 bg-purple-100 rounded-t-md font-medium flex justify-between items-center">
-            <h2>Scheduled</h2>
-            <div className="flex items-center">
-              <span className="bg-gray-100 px-2 rounded-full text-sm mr-2">{scheduledTasks.length}</span>
-              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </div>
-          </div>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <div className="p-2 bg-gray-50 rounded-b-md">
-            {scheduledTasks.map(task => (
-              <div 
-                key={task.id}
-                draggable
-                onDragStart={(e) => handleDragStart(e, task)}
-              >
-                <TaskCard 
-                  task={task} 
-                  onClick={() => onTaskClick(task)}
-                />
-              </div>
-            ))}
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-    );
+  
+  const handleTaskDragLeave = (e: React.DragEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragOverTaskId(null);
+      setDragOverIndex(null);
+    }
   };
-
-  const renderAddTaskButtons = () => {
+  
+  const handleTaskDragEnd = () => {
+    setDraggedTaskId(null);
+    setDragOverTaskId(null);
+    setDragOverIndex(null);
+  };
+  
+  const renderTaskCard = (task: Task, index: number, tasksArray: Task[]) => {
+    const isDragging = draggedTaskId === task.id;
+    const showStartButton = !task.timerStarted || (task.timerStarted && task.timerPaused);
+    
     return (
-      <div className={cn(
-        "flex gap-2 mt-4",
-        minimized ? "flex-col" : "flex-wrap"
-      )}>
-        {priorities.map(priority => (
-          <Button 
-            key={priority}
-            variant="outline" 
-            size="sm" 
-            onClick={() => onAddTask(priority)}
-            className={cn(
-              priority === 'low' ? 'border-blue-500' : 
-              priority === 'medium' ? 'border-yellow-500' : 
-              priority === 'high' ? 'border-orange-500' : 
-              'border-red-500',
-              "border-l-4"
-            )}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add {priority.charAt(0).toUpperCase() + priority.slice(1)}
-          </Button>
-        ))}
+      <div 
+        key={task.id}
+        className={`relative ${isDragging ? 'opacity-50' : ''}`}
+        onDragOver={(e) => handleTaskDragOver(e, task, index)}
+        onDragLeave={handleTaskDragLeave}
+      >
+        {dragOverTaskId === task.id && dragOverIndex === index && (
+          <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500 -mt-1.5 rounded-full z-10"></div>
+        )}
+        <TaskCard 
+          task={task} 
+          onClick={() => onTaskClick(task)} 
+          onDragStart={(e) => handleTaskDragStart(e, task)}
+          showStartButton={showStartButton}
+          isCalendarView={true}
+        />
+        {dragOverTaskId === task.id && dragOverIndex === index + 1 && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-500 -mb-1.5 rounded-full z-10"></div>
+        )}
       </div>
     );
   };
-
+  
   return (
-    <ScrollArea className="h-full">
-      <div className="p-4">
-        {/* Priority tasks first */}
-        {priorities.map(priority => renderPrioritySection(priority))}
-        {/* Scheduled tasks at the bottom */}
-        {renderScheduledSection()}
-        {renderAddTaskButtons()}
-      </div>
-    </ScrollArea>
+    <div className="stacked-task-board space-y-4">
+      <TaskBoardSection 
+        title="Critical" 
+        count={criticalTasks.length}
+        collapsed={collapsedSections.includes('critical')}
+        onToggle={() => onToggleSection('critical')}
+        onAddTask={() => onAddTask && onAddTask('critical')}
+      >
+        {!collapsedSections.includes('critical') && criticalTasks.map((task, index) => 
+          renderTaskCard(task, index, criticalTasks)
+        )}
+      </TaskBoardSection>
+      
+      <TaskBoardSection 
+        title="High" 
+        count={highTasks.length}
+        collapsed={collapsedSections.includes('high')}
+        onToggle={() => onToggleSection('high')}
+        onAddTask={() => onAddTask && onAddTask('high')}
+      >
+        {!collapsedSections.includes('high') && highTasks.map((task, index) => 
+          renderTaskCard(task, index, highTasks)
+        )}
+      </TaskBoardSection>
+      
+      <TaskBoardSection 
+        title="Medium" 
+        count={mediumTasks.length}
+        collapsed={collapsedSections.includes('medium')}
+        onToggle={() => onToggleSection('medium')}
+        onAddTask={() => onAddTask && onAddTask('medium')}
+      >
+        {!collapsedSections.includes('medium') && mediumTasks.map((task, index) => 
+          renderTaskCard(task, index, mediumTasks)
+        )}
+      </TaskBoardSection>
+      
+      <TaskBoardSection 
+        title="Low" 
+        count={lowTasks.length}
+        collapsed={collapsedSections.includes('low')}
+        onToggle={() => onToggleSection('low')}
+        onAddTask={() => onAddTask && onAddTask('low')}
+      >
+        {!collapsedSections.includes('low') && lowTasks.map((task, index) => 
+          renderTaskCard(task, index, lowTasks)
+        )}
+      </TaskBoardSection>
+    </div>
   );
 };
 
