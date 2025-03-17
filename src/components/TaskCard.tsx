@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils";
 import { Task } from "@/lib/types";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, CheckCircle, SignalLow, SignalMedium, SignalHigh, Flame, TimerReset } from "lucide-react";
+import { SignalLow, SignalMedium, SignalHigh, Flame, Play } from "lucide-react";
+import TaskProgressCircle from "./TaskProgressCircle";
 
 interface TaskCardProps {
   task: Task;
@@ -38,6 +39,17 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick }) => {
   
   const isRunning = task.timerStarted && !task.timerPaused && !task.completed && !task.timerExpired;
 
+  // Calculate progress for progress circle
+  const getProgress = () => {
+    if (task.completed) return 1;
+    if (!task.timerStarted) return 0;
+    
+    const totalMinutes = task.estimatedTime;
+    const elapsedMinutes = task.timerElapsed || 0;
+    
+    return Math.min(elapsedMinutes / totalMinutes, 1);
+  };
+
   return (
     <Card 
       className={cn(
@@ -48,7 +60,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick }) => {
         task.priority === "medium" && "priority-medium",
         task.priority === "high" && "priority-high",
         task.priority === "critical" && "priority-critical",
-        isRunning && "border border-purple-500 shadow-md",
+        isRunning && "border border-gray-500 shadow-md",
         task.completed && "border border-green-500 bg-green-50 opacity-80"
       )}
       onClick={onClick}
@@ -62,11 +74,12 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick }) => {
           <div className="flex items-center gap-1">
             {showRemainingTime && (
               <div className="flex items-center bg-gray-100 rounded px-1 py-0.5 text-xs">
-                <TimerReset className="h-3 w-3 mr-0.5 text-purple-600" />
                 <span>{formatTime(task.remainingTime || 0)}</span>
               </div>
             )}
-            {task.completed && <CheckCircle className="h-4 w-4 text-green-600" />}
+            {isRunning && (
+              <Play className="h-3 w-3 text-gray-600" />
+            )}
           </div>
         </div>
       </CardHeader>
@@ -88,7 +101,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick }) => {
       </CardContent>
       <CardFooter className="p-3 pt-0 flex justify-between items-center">
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Clock className="h-3 w-3" />
+          <TaskProgressCircle progress={getProgress()} size={14} />
           <span>{formatTime(task.estimatedTime)}</span>
         </div>
         {task.scheduled && !isRunning && (
@@ -97,7 +110,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging, onClick }) => {
           </Badge>
         )}
         {isRunning && (
-          <Badge className="text-xs bg-purple-500 animate-pulse">
+          <Badge className="text-xs bg-gray-600 animate-pulse">
             Running
           </Badge>
         )}

@@ -547,7 +547,7 @@ const Index = () => {
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
             <h1 className="text-2xl font-bold flex items-center font-['Noto_Sans_JP',_sans-serif]">
-              <img src="/lovable-uploads/f43f9967-69ed-4047-bfc3-f619d50d3d40.png" alt="Shinko Logo" className="h-12 w-auto" />
+              <img src="/lovable-uploads/f43f9967-69ed-4047-bfc3-f619d50d3d40.png" alt="Shinko Logo" className="app-logo h-12 w-auto" />
             </h1>
             <div className="flex gap-2">
               <Button 
@@ -558,7 +558,7 @@ const Index = () => {
                   setCalendarExpanded(true);
                   setTaskboardExpanded(false);
                 }}
-                className={viewMode === 'calendar' ? 'bg-purple-100 text-purple-900' : ''}
+                className={viewMode === 'calendar' ? 'bg-gray-100 text-gray-900' : ''}
               >
                 <CalendarIcon className="h-4 w-4 mr-1" />
                 Week View
@@ -571,7 +571,7 @@ const Index = () => {
                   setTaskboardExpanded(true);
                   setCalendarExpanded(false);
                 }}
-                className={viewMode === 'taskboard' ? 'bg-purple-100 text-purple-900' : ''}
+                className={viewMode === 'taskboard' ? 'bg-gray-100 text-gray-900' : ''}
               >
                 <LayoutList className="h-4 w-4 mr-1" />
                 Board View
@@ -593,7 +593,7 @@ const Index = () => {
               setAddTaskDialogOpen(true);
               // Default to medium priority when adding from header
               setInitialPriority('medium');
-            }} className="bg-purple-600 hover:bg-purple-700">
+            }} className="bg-gray-800 hover:bg-gray-900">
               <Plus className="h-4 w-4 mr-1" />
               Add Task
             </Button>
@@ -621,6 +621,7 @@ const Index = () => {
               minimized={!calendarExpanded}
               scrollToCurrentTime={true}
               onTaskDragToBoard={handleTaskMove}
+              onStartTask={handleStartTimer}
             />
           </AnimatedPanel>
           
@@ -641,6 +642,7 @@ const Index = () => {
                 onDragStart={setDraggingTask}
                 onTaskMove={handleTaskMove}
                 onTaskDragToCalendar={handleTaskSchedule}
+                minimized={false}
               />
             ) : (
               <StackedTaskBoard
@@ -670,26 +672,35 @@ const Index = () => {
       />
 
       {selectedTask && (
-        <EditTaskDialog
+        <TaskDetails
+          task={selectedTask}
           open={taskDialogOpen}
           onOpenChange={setTaskDialogOpen}
-          task={selectedTask}
           onUpdate={handleUpdateTask}
           onComplete={() => {
             handleTaskComplete(selectedTask.id);
             setTaskDialogOpen(false);
           }}
-          onUnschedule={() => {
-            if (selectedTask.scheduled) {
-              handleTaskUnschedule(selectedTask.id);
+          onStartTimer={() => {
+            handleStartTimer(selectedTask.id);
+            setTaskDialogOpen(false);
+          }}
+          onStopTimer={() => {
+            handleStopTimer(selectedTask.id);
+          }}
+          onUnschedule={selectedTask.scheduled ? () => {
+            handleTaskUnschedule(selectedTask.id);
+            setTaskDialogOpen(false);
+          } : undefined}
+          onDelete={() => {
+            // Ask for confirmation
+            if (window.confirm(`Delete task "${selectedTask.title}"?`)) {
+              if (onTaskDelete) onTaskDelete(selectedTask.id);
               setTaskDialogOpen(false);
             }
           }}
-          onStartTimer={(taskId) => handleStartTimer(taskId)}
-          onStopTimer={(taskId) => handleStopTimer(taskId)}
-          onTimerComplete={(taskId) => handleTaskComplete(taskId)}
-          onAddTime={(taskId, minutes) => handleAddTime(taskId, minutes)}
           availableLabels={labels}
+          onAddLabel={handleAddLabel}
         />
       )}
     </div>

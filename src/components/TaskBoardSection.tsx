@@ -1,10 +1,9 @@
 
 import React from "react";
 import { Task, Priority } from "@/lib/types";
-import TaskCard from "./TaskCard";
 import { Button } from "@/components/ui/button";
-import { Plus, ChevronDown, ChevronRight } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown, ChevronRight, Plus } from "lucide-react";
+import TaskCard from "./TaskCard";
 
 interface TaskBoardSectionProps {
   title: string;
@@ -17,10 +16,11 @@ interface TaskBoardSectionProps {
   onDragStart: (e: React.DragEvent, task: Task) => void;
   onDragOver: (e: React.DragEvent, priority: Priority, index?: number) => void;
   onDragLeave: (e: React.DragEvent) => void;
-  onDrop: (e: React.DragEvent, priority: Priority, index?: number) => void;
+  onDrop: (e: React.DragEvent, priority: Priority, dropIndex?: number) => void;
   dragOverPriority: Priority | null;
   dragOverIndex: number | null;
   minimized?: boolean;
+  className?: string;
 }
 
 const TaskBoardSection: React.FC<TaskBoardSectionProps> = ({
@@ -37,70 +37,78 @@ const TaskBoardSection: React.FC<TaskBoardSectionProps> = ({
   onDrop,
   dragOverPriority,
   dragOverIndex,
-  minimized = false
+  minimized = false,
+  className = "",
 }) => {
-  const priorityBackgroundColor = 
-    priority === 'low' ? 'bg-blue-100' : 
-    priority === 'medium' ? 'bg-green-100' : 
-    priority === 'high' ? 'bg-orange-100' : 
-    'bg-red-100';
-
+  // Show a message if there are no tasks
+  const noTasks = tasks.length === 0;
+  
   return (
-    <Collapsible
-      open={!isCollapsed}
-      onOpenChange={onToggle}
+    <div 
+      className={`board-section relative ${className}`}
+      onDragOver={(e) => onDragOver(e, priority)}
+      onDragLeave={onDragLeave}
+      onDrop={(e) => onDrop(e, priority)}
     >
-      <CollapsibleTrigger className="w-full">
-        <div className={`p-2 ${priorityBackgroundColor} rounded-t-md font-medium flex justify-between items-center`}>
-          <h2>{title}</h2>
-          <div className="flex items-center">
-            <span className="bg-gray-100 px-2 rounded-full text-sm mr-2">{tasks.length}</span>
-            {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </div>
-        </div>
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <div 
-          className={`p-2 bg-gray-50 rounded-b-md overflow-y-auto min-h-[50px] ${minimized ? '' : 'flex-1'}`}
-          onDragOver={(e) => onDragOver(e, priority)}
-          onDragLeave={onDragLeave}
-          onDrop={(e) => onDrop(e, priority)}
+      <div className="flex items-center justify-between mb-2 bg-gray-100 p-2 rounded">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="flex items-center p-0 h-auto"
+          onClick={onToggle}
         >
-          {tasks.length > 0 ? (
-            tasks.map((task, index) => (
-              <div 
-                key={task.id}
-                draggable
-                onDragStart={(e) => onDragStart(e, task)}
-                onDragOver={(e) => onDragOver(e, priority, index)}
-                onDrop={(e) => onDrop(e, priority, index)}
-                className={`relative ${dragOverPriority === priority && dragOverIndex === index ? 'border-t-2 border-purple-500' : ''}`}
-              >
-                <TaskCard 
-                  task={task} 
-                  onClick={() => onTaskClick(task)}
-                />
-                {dragOverPriority === priority && dragOverIndex === index && (
-                  <div className="absolute w-full h-0.5 top-0 bg-purple-500 rounded"></div>
-                )}
-              </div>
-            ))
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4 mr-1" />
           ) : (
-            <div className="text-center py-4 text-gray-400 text-sm">No tasks</div>
+            <ChevronDown className="h-4 w-4 mr-1" />
+          )}
+          <h3 className="font-medium">{title}</h3>
+        </Button>
+        
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={onAddTask}
+          className="h-7 bg-gray-200 hover:bg-gray-300 text-gray-700"
+        >
+          <Plus className="h-3 w-3 mr-1" />
+          Add {title}
+        </Button>
+      </div>
+      
+      {!isCollapsed && (
+        <div className="space-y-2">
+          {noTasks && (
+            <div className="p-4 bg-gray-50 border border-dashed border-gray-300 rounded-lg text-center text-gray-500">
+              No {title.toLowerCase()} tasks
+            </div>
           )}
           
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="w-full mt-2" 
-            onClick={onAddTask}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add {title}
-          </Button>
+          {tasks.map((task, index) => (
+            <div key={task.id} className="relative">
+              {dragOverPriority === priority && dragOverIndex === index && (
+                <div className="drop-indicator absolute -top-1 left-0 right-0" />
+              )}
+              <div 
+                draggable 
+                onDragStart={(e) => onDragStart(e, task)}
+                onClick={() => onTaskClick(task)}
+              >
+                <TaskCard task={task} />
+              </div>
+              {dragOverPriority === priority && dragOverIndex === index + 1 && (
+                <div className="drop-indicator absolute -bottom-1 left-0 right-0" />
+              )}
+            </div>
+          ))}
+          
+          {/* Final drop zone */}
+          {dragOverPriority === priority && dragOverIndex === tasks.length && (
+            <div className="drop-indicator absolute bottom-0 left-0 right-0" />
+          )}
         </div>
-      </CollapsibleContent>
-    </Collapsible>
+      )}
+    </div>
   );
 };
 

@@ -15,6 +15,7 @@ interface TaskBoardProps {
   onTaskDelete?: (taskId: string) => void;
   collapsedSections?: string[];
   onToggleSection?: (section: string) => void;
+  minimized?: boolean;
 }
 
 const TaskBoard: React.FC<TaskBoardProps> = ({
@@ -27,6 +28,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
   onTaskDelete,
   collapsedSections = [],
   onToggleSection = () => {},
+  minimized = false,
 }) => {
   const priorities: Priority[] = ["critical", "high", "medium", "low"];
   const [dragOverPriority, setDragOverPriority] = useState<Priority | null>(null);
@@ -177,7 +179,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full gap-4 overflow-auto">
+    <div className={`flex flex-col h-full gap-4 overflow-auto ${!minimized ? "md:flex-row" : ""}`}>
       {priorities.map(priority => (
         <TaskBoardSection
           key={priority}
@@ -194,6 +196,8 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
           onDrop={handleDrop}
           dragOverPriority={dragOverPriority}
           dragOverIndex={dragOverIndex}
+          minimized={minimized}
+          className={minimized ? "w-full" : "md:flex-1"}
         />
       ))}
       
@@ -201,6 +205,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
         tasks={getCompletedTasks()}
         onTaskClick={onTaskClick}
         onTaskDelete={onTaskDelete}
+        className={minimized ? "w-full" : "md:flex-1"}
       />
       
       {renderTrashBin()}

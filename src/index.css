@@ -16,7 +16,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 270 70% 60%;
+    --primary: 220 14% 30%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -25,7 +25,7 @@
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 270 70% 96%;
+    --accent: 220 14% 96%;
     --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
@@ -33,7 +33,7 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 270 70% 60%;
+    --ring: 220 14% 30%;
 
     --radius: 0.5rem;
 
@@ -44,7 +44,7 @@
     --priority-critical: 0 100% 60%;
     
     /* Calendar colors */
-    --calendar-task: 270 100% 70%;
+    --calendar-task: 220 14% 70%;
     --calendar-event: 120 100% 40%;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -60,7 +60,7 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 270 70% 60%;
+    --primary: 220 14% 60%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 217.2 32.6% 17.5%;
@@ -86,7 +86,7 @@
     --priority-critical: 0 100% 50%;
     
     /* Calendar colors */
-    --calendar-task: 270 100% 60%;
+    --calendar-task: 220 14% 50%;
     --calendar-event: 120 100% 35%;
   }
 }
@@ -123,7 +123,7 @@
 }
 
 .calendar-task {
-  @apply bg-purple-400 border-purple-500;
+  @apply bg-gray-200 border-gray-300;
 }
 
 .calendar-event {
@@ -135,7 +135,7 @@
 }
 
 .droppable-active {
-  @apply bg-blue-100 transition-colors duration-200;
+  @apply bg-gray-100 transition-colors duration-200;
 }
 
 /* Panel transitions */
@@ -145,7 +145,7 @@
 
 /* Handle styles */
 .panel-handle:hover {
-  @apply bg-blue-100;
+  @apply bg-gray-100;
 }
 
 /* Smooth scrolling */
@@ -155,29 +155,29 @@
 
 /* Drag and drop visual cues */
 .calendar-drop-indicator {
-  @apply absolute bg-purple-500 h-0.5 w-full z-20 rounded;
-  box-shadow: 0 0 4px rgba(155, 135, 245, 0.7);
+  @apply absolute bg-gray-400 h-0.5 w-full z-20 rounded;
+  box-shadow: 0 0 4px rgba(100, 100, 100, 0.7);
 }
 
 .task-card-preview {
-  @apply bg-white shadow-lg rounded border border-purple-400 p-2 max-w-xs overflow-hidden;
+  @apply bg-white shadow-lg rounded border border-gray-400 p-2 max-w-xs overflow-hidden;
 }
 
 .drop-indicator {
-  @apply absolute w-full h-0.5 bg-purple-500 z-20 rounded;
-  box-shadow: 0 0 4px rgba(155, 135, 245, 0.7);
+  @apply absolute w-full h-0.5 bg-gray-500 z-20 rounded;
+  box-shadow: 0 0 4px rgba(100, 100, 100, 0.7);
 }
 
 /* Task running animation */
 @keyframes pulse-border {
   0% {
-    box-shadow: 0 0 0 0 rgba(155, 135, 245, 0.7);
+    box-shadow: 0 0 0 0 rgba(100, 100, 100, 0.7);
   }
   70% {
-    box-shadow: 0 0 0 10px rgba(155, 135, 245, 0);
+    box-shadow: 0 0 0 10px rgba(100, 100, 100, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(155, 135, 245, 0);
+    box-shadow: 0 0 0 0 rgba(100, 100, 100, 0);
   }
 }
 
@@ -192,15 +192,33 @@
 }
 
 .shinko-gradient {
-  background: linear-gradient(135deg, #d6bcfa 0%, #9b87f5 100%);
+  background: linear-gradient(135deg, #eaeaea 0%, #a0a0a0 100%);
 }
 
 /* Task board drop indicators */
 .task-drop-zone {
-  @apply absolute w-full border-t-2 border-purple-500 transition-opacity duration-200 z-10;
+  @apply absolute w-full border-t-2 border-gray-500 transition-opacity duration-200 z-10;
 }
 
 /* Calendar multi-task layout */
 .split-calendar-task {
   @apply absolute rounded-md overflow-hidden;
+}
+
+/* Editable fields hover effects */
+.editable-field {
+  @apply relative;
+}
+
+.editable-field:hover::after {
+  content: '';
+  @apply absolute inset-0 bg-gray-100 opacity-10 rounded transition-opacity;
+}
+
+/* Make the logo larger */
+.app-logo {
+  height: 40px !important;
+  width: auto !important;
+  object-fit: contain !important;
+  margin-right: 0.5rem !important;
 }

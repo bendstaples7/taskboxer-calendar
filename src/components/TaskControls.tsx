@@ -35,7 +35,7 @@ const TaskControls: React.FC<TaskControlsProps> = ({
         </Button>
       ) : (
         <Button 
-          className="w-full bg-purple-600 hover:bg-purple-700"
+          className="w-full bg-gray-700 hover:bg-gray-800"
           onClick={onStartTimer}
           disabled={task.completed}
         >

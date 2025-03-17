@@ -56,7 +56,7 @@
 }
 
 .droppable-active {
-  background-color: rgba(155, 135, 245, 0.1);
+  background-color: rgba(100, 100, 100, 0.1);
 }
 
 .trash-active {
@@ -66,8 +66,8 @@
 
 .create-task-indicator {
   position: absolute;
-  background-color: rgba(155, 135, 245, 0.3);
-  border: 2px dashed #9b87f5;
+  background-color: rgba(100, 100, 100, 0.3);
+  border: 2px dashed #666666;
   border-radius: 4px;
   z-index: 50;
   pointer-events: none;
@@ -75,7 +75,39 @@
 
 /* Add space for time markers to prevent overlap */
 .calendar-container .border-t .text-xs.text-gray-400 {
+  position: relative;
   background-color: white;
   z-index: 5;
+  display: inline-block;
   padding: 0 4px;
+  transform: translateY(-50%);
+  margin-left: 4px;
 }
+
+/* Hour line styles */
+.calendar-container .border-t {
+  position: relative;
+}
+
+.calendar-container .border-t::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #e5e7eb;
+  z-index: 1;
+}
+
+/* Override colors */
+.calendar-task {
+  background-color: #e5e7eb !important;
+  border-color: #d1d5db !important;
+}
+
+.calendar-task.animate-pulse {
+  background-color: #6b7280 !important;
+  border-color: #4b5563 !important;
+}
+

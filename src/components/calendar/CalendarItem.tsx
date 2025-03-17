@@ -2,8 +2,9 @@
 import React from 'react';
 import { format, getHours, getMinutes, differenceInMinutes } from 'date-fns';
 import { cn } from "@/lib/utils";
-import { Clock, Flag, Flame, SignalLow, SignalMedium, SignalHigh } from "lucide-react";
+import { Flag, Flame, SignalLow, SignalMedium, SignalHigh, Play } from "lucide-react";
 import { Task, CalendarEvent, Priority } from "@/lib/types";
+import TaskProgressCircle from '../TaskProgressCircle';
 
 interface CalendarItemProps {
   item: Task | CalendarEvent;
@@ -16,6 +17,7 @@ interface CalendarItemProps {
   onDragStart?: (e: React.DragEvent, task: Task) => void;
   onDragEnd?: () => void;
   onResizeStart?: (e: React.MouseEvent, taskId: string) => void;
+  onStartTask?: (taskId: string) => void;
 }
 
 const getPriorityIcon = (priority: Priority | undefined) => {
@@ -45,7 +47,8 @@ const CalendarItem: React.FC<CalendarItemProps> = ({
   onTaskClick,
   onDragStart,
   onDragEnd,
-  onResizeStart
+  onResizeStart,
+  onStartTask
 }) => {
   const start = isTask 
     ? (item as Task).scheduled?.start
@@ -71,6 +74,7 @@ const CalendarItem: React.FC<CalendarItemProps> = ({
   const leftOffset = totalItems > 1 ? `calc(${(index / totalItems) * 100}% + 2px)` : "2px";
 
   // Determine special styling for running tasks
+  const task = isTask ? item as Task : null;
   const isRunning = isTask && 
     (item as Task).timerStarted && 
     !(item as Task).timerPaused && 
@@ -78,17 +82,34 @@ const CalendarItem: React.FC<CalendarItemProps> = ({
     !(item as Task).completed;
     
   const isCompleted = isTask && (item as Task).completed;
-  
-  const task = isTask ? item as Task : null;
   const taskPriority = task?.priority;
+
+  // Calculate progress for the task
+  const getProgress = () => {
+    if (!isTask) return 0;
+    const task = item as Task;
+    
+    if (task.completed) return 1;
+    if (!task.timerStarted) return 0;
+    
+    const elapsedMinutes = task.timerElapsed || 0;
+    return Math.min(elapsedMinutes / task.estimatedTime, 1);
+  };
 
   const getBackgroundColor = () => {
     if (!isTask) return "bg-gray-300 border-gray-400"; // Events
-    if (isRunning) return "bg-purple-500 border-purple-700";
+    if (isRunning) return "bg-gray-500 border-gray-700";
     if (isCompleted) return "bg-green-400 border-green-600 opacity-70";
     
-    // Default task background based on priority
+    // Default task background
     return "bg-gray-200 border-gray-300";
+  };
+  
+  const handleStartTask = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isTask && onStartTask) {
+      onStartTask((item as Task).id);
+    }
   };
 
   return (
@@ -117,11 +138,24 @@ const CalendarItem: React.FC<CalendarItemProps> = ({
         {isTask && taskPriority && getPriorityIcon(taskPriority)}
         <span>{isTask ? (item as Task).title : (item as CalendarEvent).title}</span>
       </div>
-      <div className="flex items-center text-xs opacity-75">
-        <Clock className="h-3 w-3 mr-1" />
-        <span>
-          {format(new Date(start), 'HH:mm')} - {format(new Date(end), 'HH:mm')}
-        </span>
+      
+      <div className="flex justify-between items-center text-xs opacity-75 mt-1">
+        <div className="flex items-center">
+          <TaskProgressCircle progress={getProgress()} size={12} strokeWidth={2} />
+          <span className="ml-1">
+            {format(new Date(start), 'HH:mm')} - {format(new Date(end), 'HH:mm')}
+          </span>
+        </div>
+        
+        {isTask && !isRunning && !isCompleted && (
+          <button 
+            className="rounded-full bg-gray-100 hover:bg-gray-300 p-0.5 transition-colors"
+            onClick={handleStartTask}
+            title="Start Task"
+          >
+            <Play className="h-3 w-3 text-gray-700" />
+          </button>
+        )}
       </div>
       
       {/* Resize handle for tasks */}
