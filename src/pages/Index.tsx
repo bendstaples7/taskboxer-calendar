@@ -8,6 +8,7 @@ import CalendarView from "@/components/CalendarView";
 import AnimatedPanel from "@/components/AnimatedPanel";
 import AddTaskDialog from "@/components/AddTaskDialog";
 import EditTaskDialog from "@/components/EditTaskDialog";
+import TaskDetails from "@/components/TaskDetails";
 import ActiveTasksDropdown from "@/components/ActiveTasksDropdown";
 import GoogleCalendarConnect from "@/components/GoogleCalendarConnect";
 import { useGoogleCalendarSync } from "@/hooks/useGoogleCalendarSync";
@@ -498,6 +499,23 @@ const Index = () => {
     });
   };
 
+  const handleTaskDelete = async (taskId: string) => {
+    const taskToDelete = tasks.find(t => t.id === taskId);
+    
+    if (taskToDelete && taskToDelete.googleEventId && isInitialized) {
+      await removeTaskFromCalendar(taskToDelete);
+    }
+
+    await deleteTask(taskId);
+    
+    setTasks(prev => prev.filter(t => t.id !== taskId));
+    
+    toast({
+      title: "Task deleted",
+      description: "The task has been permanently deleted.",
+    });
+  };
+
   const toggleCalendarExpanded = () => {
     setCalendarExpanded(prev => !prev);
     setTaskboardExpanded(prev => !prev);
@@ -622,6 +640,7 @@ const Index = () => {
               scrollToCurrentTime={true}
               onTaskDragToBoard={handleTaskMove}
               onStartTask={handleStartTimer}
+              onTaskDelete={handleTaskDelete}
             />
           </AnimatedPanel>
           
@@ -695,7 +714,7 @@ const Index = () => {
           onDelete={() => {
             // Ask for confirmation
             if (window.confirm(`Delete task "${selectedTask.title}"?`)) {
-              if (onTaskDelete) onTaskDelete(selectedTask.id);
+              if (handleTaskDelete) handleTaskDelete(selectedTask.id);
               setTaskDialogOpen(false);
             }
           }}

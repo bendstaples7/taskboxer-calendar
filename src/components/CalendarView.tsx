@@ -47,6 +47,7 @@ interface CalendarViewProps {
   onAddTask?: (task: Task) => void;
   availableLabels?: any[];
   onAddLabel?: (label: any) => void;
+  onStartTask?: (taskId: string) => void; // Added missing property
 }
 
 const HOUR_HEIGHT = 60; // pixels per hour
