@@ -103,15 +103,36 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
       </div>
     );
   };
+
+  // Placeholder functions to satisfy TaskBoardSection props
+  const handlePlaceholderDragOver = (e: React.DragEvent, priority: Priority, index?: number) => {
+    e.preventDefault();
+  };
+  
+  const handlePlaceholderDragLeave = (e: React.DragEvent) => {
+    // No-op
+  };
+  
+  const handlePlaceholderDrop = (e: React.DragEvent, priority: Priority, dropIndex?: number) => {
+    e.preventDefault();
+  };
   
   return (
     <div className="stacked-task-board space-y-4">
       <TaskBoardSection 
         title="Critical" 
-        count={criticalTasks.length}
-        collapsed={collapsedSections.includes('critical')}
+        priority="critical"
+        tasks={[]}
+        isCollapsed={collapsedSections.includes('critical')}
         onToggle={() => onToggleSection('critical')}
         onAddTask={() => onAddTask && onAddTask('critical')}
+        onDragStart={(e, task) => {}}
+        onDragOver={handlePlaceholderDragOver}
+        onDragLeave={handlePlaceholderDragLeave}
+        onDrop={handlePlaceholderDrop}
+        dragOverPriority={null}
+        dragOverIndex={null}
+        count={criticalTasks.length}
       >
         {!collapsedSections.includes('critical') && criticalTasks.map((task, index) => 
           renderTaskCard(task, index, criticalTasks)
@@ -120,10 +141,18 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
       
       <TaskBoardSection 
         title="High" 
-        count={highTasks.length}
-        collapsed={collapsedSections.includes('high')}
+        priority="high"
+        tasks={[]}
+        isCollapsed={collapsedSections.includes('high')}
         onToggle={() => onToggleSection('high')}
         onAddTask={() => onAddTask && onAddTask('high')}
+        onDragStart={(e, task) => {}}
+        onDragOver={handlePlaceholderDragOver}
+        onDragLeave={handlePlaceholderDragLeave}
+        onDrop={handlePlaceholderDrop}
+        dragOverPriority={null}
+        dragOverIndex={null}
+        count={highTasks.length}
       >
         {!collapsedSections.includes('high') && highTasks.map((task, index) => 
           renderTaskCard(task, index, highTasks)
@@ -132,10 +161,18 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
       
       <TaskBoardSection 
         title="Medium" 
-        count={mediumTasks.length}
-        collapsed={collapsedSections.includes('medium')}
+        priority="medium"
+        tasks={[]}
+        isCollapsed={collapsedSections.includes('medium')}
         onToggle={() => onToggleSection('medium')}
         onAddTask={() => onAddTask && onAddTask('medium')}
+        onDragStart={(e, task) => {}}
+        onDragOver={handlePlaceholderDragOver}
+        onDragLeave={handlePlaceholderDragLeave}
+        onDrop={handlePlaceholderDrop}
+        dragOverPriority={null}
+        dragOverIndex={null}
+        count={mediumTasks.length}
       >
         {!collapsedSections.includes('medium') && mediumTasks.map((task, index) => 
           renderTaskCard(task, index, mediumTasks)
@@ -144,10 +181,18 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
       
       <TaskBoardSection 
         title="Low" 
-        count={lowTasks.length}
-        collapsed={collapsedSections.includes('low')}
+        priority="low"
+        tasks={[]}
+        isCollapsed={collapsedSections.includes('low')}
         onToggle={() => onToggleSection('low')}
         onAddTask={() => onAddTask && onAddTask('low')}
+        onDragStart={(e, task) => {}}
+        onDragOver={handlePlaceholderDragOver}
+        onDragLeave={handlePlaceholderDragLeave}
+        onDrop={handlePlaceholderDrop}
+        dragOverPriority={null}
+        dragOverIndex={null}
+        count={lowTasks.length}
       >
         {!collapsedSections.includes('low') && lowTasks.map((task, index) => 
           renderTaskCard(task, index, lowTasks)
