@@ -21,11 +21,9 @@ export const useGoogleCalendarService = () => {
     try {
       // Load the Google API client library
       await new Promise<void>((resolve, reject) => {
-        // Fix: Update the gapi.load call to use the correct syntax for callback
-        window.gapi.load('client:auth2', {
-          // Fix: Use the proper syntax for the callback function
-          callback: resolve,
-          onerror: reject
+        // Fix: Use the correct way to load the Google API
+        window.gapi.load('client:auth2', () => {
+          resolve();
         });
       });
 

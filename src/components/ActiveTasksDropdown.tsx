@@ -6,26 +6,26 @@ import { Button } from '@/components/ui/button';
 import TaskTimer from './TaskTimer';
 
 interface ActiveTasksDropdownProps {
-  tasks: Task[];
+  tasks?: Task[];
+  activeTasks?: Task[];
   onCompleteTask: (taskId: string) => void;
-  onPauseTask: (taskId: string) => void;
-  onMoveToBoard: (taskId: string) => void;
-  activeTasks?: Task[]; // Add missing prop to match usage in Index.tsx
-  onOpenTask?: (task: Task) => void; // Add missing prop
-  onAddTime?: (taskId: string, minutes: number) => void; // Add missing prop
+  onPauseTask?: (taskId: string) => void;
+  onMoveToBoard?: (taskId: string) => void;
+  onOpenTask?: (task: Task) => void;
+  onAddTime?: (taskId: string, minutes: number) => void;
 }
 
 const ActiveTasksDropdown: React.FC<ActiveTasksDropdownProps> = ({
   tasks,
+  activeTasks,
   onCompleteTask,
   onPauseTask,
   onMoveToBoard,
-  activeTasks,
   onOpenTask,
   onAddTime
 }) => {
   // Use either activeTasks or tasks based on what's provided
-  const displayTasks = activeTasks || tasks;
+  const displayTasks = activeTasks || tasks || [];
   
   if (displayTasks.length === 0) {
     return (
@@ -41,10 +41,10 @@ const ActiveTasksDropdown: React.FC<ActiveTasksDropdownProps> = ({
         <div 
           key={task.id} 
           className="p-2 mb-2 border rounded-md flex items-center justify-between hover:bg-gray-50"
+          onClick={() => onOpenTask?.(task)}
         >
-          <div className="flex-1">
+          <div className="flex-1 cursor-pointer">
             <div className="font-medium">{task.title}</div>
-            {/* Update TaskTimer props to match the component's interface */}
             <TaskTimer 
               duration={task.estimatedTime} 
               onComplete={() => {}} 
@@ -56,29 +56,42 @@ const ActiveTasksDropdown: React.FC<ActiveTasksDropdownProps> = ({
               size="icon" 
               variant="ghost" 
               className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-100" 
-              onClick={() => onCompleteTask(task.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onCompleteTask(task.id);
+              }}
               title="Mark as complete"
             >
               <CheckCircle className="h-4 w-4" />
             </Button>
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              className="h-8 w-8 text-orange-600 hover:text-orange-700 hover:bg-orange-100" 
-              onClick={() => onPauseTask(task.id)}
-              title="Pause timer"
-            >
-              <Pause className="h-4 w-4" />
-            </Button>
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-100" 
-              onClick={() => onMoveToBoard(task.id)}
-              title="Move to task board"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
+            {onPauseTask && (
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="h-8 w-8 text-orange-600 hover:text-orange-700 hover:bg-orange-100" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPauseTask(task.id);
+                }}
+                title="Pause timer"
+              >
+                <Pause className="h-4 w-4" />
+              </Button>
+            )}
+            {onMoveToBoard && (
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-100" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMoveToBoard(task.id);
+                }}
+                title="Move to task board"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       ))}
