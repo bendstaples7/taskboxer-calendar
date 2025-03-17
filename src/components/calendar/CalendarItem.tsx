@@ -141,7 +141,7 @@ const CalendarItem: React.FC<CalendarItemProps> = ({
       
       <div className="flex justify-between items-center text-xs opacity-75 mt-1">
         <div className="flex items-center">
-          <TaskProgressCircle progress={getProgress()} size={12} strokeWidth={2} />
+          <TaskProgressCircle progress={getProgress()} size={14} strokeWidth={2} />
           <span className="ml-1">
             {format(new Date(start), 'HH:mm')} - {format(new Date(end), 'HH:mm')}
           </span>

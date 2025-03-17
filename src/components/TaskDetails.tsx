@@ -18,8 +18,8 @@ interface TaskDetailsProps {
   onStopTimer: () => void;
   onUnschedule?: () => void;
   onDelete?: () => void;
-  availableLabels: any[];
-  onAddLabel?: (label: any) => void;
+  availableLabels: Label[];
+  onAddLabel?: (label: Label) => void;
 }
 
 const TaskDetails: React.FC<TaskDetailsProps> = ({
@@ -98,7 +98,7 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="sm:max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden"
+        className="sm:max-w-md max-h-[80vh] overflow-y-auto overflow-x-hidden modal-content"
         style={{
           boxShadow: isRunning ? `0 0 ${glowStrength}px ${glowColor}` : undefined,
           border: isRunning ? `${borderWidth}px solid ${glowColor}` : undefined,
@@ -107,7 +107,7 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({
       >
         <DialogHeader>
           <DialogTitle 
-            className={`group cursor-pointer ${isRunning ? "text-gray-700" : ""}`}
+            className="group cursor-pointer"
             onClick={() => setEditingField('title')}
           >
             {editingField === 'title' ? (
@@ -125,10 +125,12 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({
                 autoFocus
               />
             ) : (
-              <span className="relative">
+              <div className="relative group-hover:bg-gray-50 p-2 rounded -m-2 transition-colors">
                 {localTask.title}
-                <span className="absolute inset-0 bg-gray-100 opacity-0 group-hover:opacity-10 transition-opacity rounded"></span>
-              </span>
+                <div className="absolute inset-0 flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-xs text-gray-400 mr-2">Click to edit</span>
+                </div>
+              </div>
             )}
           </DialogTitle>
         </DialogHeader>
@@ -150,8 +152,11 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({
                 autoFocus
               />
             ) : (
-              <div className="mt-1">
+              <div className="mt-1 group-hover:bg-gray-50 p-2 rounded -m-2 transition-colors relative">
                 {localTask.description || 'No description'}
+                <div className="absolute inset-0 flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-xs text-gray-400 mr-2">Click to edit</span>
+                </div>
               </div>
             )}
           </div>
@@ -176,8 +181,11 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({
                 <option value="critical">Critical</option>
               </select>
             ) : (
-              <div className="mt-1 capitalize">
+              <div className="mt-1 capitalize group-hover:bg-gray-50 p-2 rounded -m-2 transition-colors relative">
                 {localTask.priority}
+                <div className="absolute inset-0 flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-xs text-gray-400 mr-2">Click to edit</span>
+                </div>
               </div>
             )}
           </div>
@@ -189,26 +197,47 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({
           >
             <label className="text-xs font-medium text-gray-500">Estimated Time</label>
             {editingField === 'estimatedTime' ? (
-              <div className="flex gap-2 mt-1">
-                <input
-                  type="number"
+              <div className="mt-1">
+                <select
                   className="w-full p-2 border rounded"
                   value={localTask.estimatedTime}
-                  onChange={(e) => setLocalTask({...localTask, estimatedTime: parseInt(e.target.value)})}
-                  onBlur={() => handleUpdateField('estimatedTime', localTask.estimatedTime)}
-                  min={1}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === 'custom') {
+                      // Stay in edit mode but focus on input
+                      return;
+                    }
+                    setLocalTask({...localTask, estimatedTime: parseInt(value)});
+                  }}
                   autoFocus
-                />
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleUpdateField('estimatedTime', localTask.estimatedTime)}
                 >
-                  Save
-                </Button>
+                  {[15, 30, 45, 60, 90, 120, 180, 240, 480].map(value => (
+                    <option key={value} value={value}>
+                      {value < 60 ? `${value}m` : value === 60 ? '1h' : value % 60 === 0 ? `${value / 60}h` : `${Math.floor(value / 60)}h ${value % 60}m`}
+                    </option>
+                  ))}
+                  <option value="custom">Custom...</option>
+                </select>
+                
+                <div className="flex justify-end mt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setEditingField(null)}
+                    className="mr-2"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    size="sm"
+                    onClick={() => handleUpdateField('estimatedTime', localTask.estimatedTime)}
+                  >
+                    Save
+                  </Button>
+                </div>
               </div>
             ) : (
-              <div className="mt-1 flex items-center gap-2">
+              <div className="mt-1 flex items-center gap-2 group-hover:bg-gray-50 p-2 rounded -m-2 transition-colors relative">
                 <TaskProgressCircle 
                   progress={progress} 
                   size={20} 
@@ -219,6 +248,9 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({
                     ? `${Math.floor(localTask.estimatedTime / 60)}h ${localTask.estimatedTime % 60}m` 
                     : `${localTask.estimatedTime}m`}
                 </span>
+                <div className="absolute inset-0 flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-xs text-gray-400 mr-2">Click to edit</span>
+                </div>
               </div>
             )}
           </div>
@@ -267,7 +299,7 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({
                 </Button>
               </div>
             ) : (
-              <div className="flex flex-wrap gap-1 mt-1">
+              <div className="flex flex-wrap gap-1 mt-1 group-hover:bg-gray-50 p-2 rounded -m-2 transition-colors relative">
                 {localTask.labels.length > 0 ? (
                   localTask.labels.map(label => (
                     <span 
@@ -281,6 +313,9 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({
                 ) : (
                   <span className="text-gray-400">No labels</span>
                 )}
+                <div className="absolute inset-0 flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-xs text-gray-400 mr-2">Click to edit</span>
+                </div>
               </div>
             )}
           </div>

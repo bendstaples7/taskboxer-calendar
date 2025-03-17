@@ -7,6 +7,7 @@ interface TaskProgressCircleProps {
   strokeWidth?: number;
   bgColor?: string;
   progressColor?: string;
+  onClick?: () => void;
 }
 
 const TaskProgressCircle: React.FC<TaskProgressCircleProps> = ({
@@ -15,6 +16,7 @@ const TaskProgressCircle: React.FC<TaskProgressCircleProps> = ({
   strokeWidth = 2,
   bgColor = '#e5e7eb', // gray-200
   progressColor = '#4b5563', // gray-600
+  onClick
 }) => {
   const normalizedProgress = Math.min(Math.max(progress, 0), 1);
   const radius = (size - strokeWidth) / 2;
@@ -26,7 +28,8 @@ const TaskProgressCircle: React.FC<TaskProgressCircleProps> = ({
       width={size}
       height={size}
       viewBox={`0 0 ${size} ${size}`}
-      className="transform -rotate-90"
+      className={`transform -rotate-90 ${onClick ? 'cursor-pointer' : ''}`}
+      onClick={onClick}
     >
       {/* Background circle */}
       <circle

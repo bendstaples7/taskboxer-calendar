@@ -17,7 +17,7 @@ export const useGoogleCalendarService = () => {
 declare global {
   interface Window {
     gapi: {
-      load: (libraries: string, callback: () => void) => void;
+      load: (libraries: string, options?: { callback: () => void; onerror: (error: any) => void }) => void;
       client: {
         init: (config: any) => Promise<void>;
         calendar: {

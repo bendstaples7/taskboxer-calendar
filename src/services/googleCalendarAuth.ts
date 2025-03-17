@@ -19,8 +19,9 @@ export const useGoogleCalendarAuth = () => {
     try {
       // Load the Google API client library
       await new Promise<void>((resolve, reject) => {
-        window.gapi.load('client:auth2', () => {
-          resolve();
+        window.gapi.load('client:auth2', {
+          callback: () => resolve(),
+          onerror: (error: any) => reject(error)
         });
       });
 
@@ -39,10 +40,13 @@ export const useGoogleCalendarAuth = () => {
       // Parse error details for better user feedback
       const errorObj = error as any;
       let errorMessage = "Error initializing Google Calendar API";
+      let errorDetails = "";
       
       if (errorObj?.error === 'idpiframe_initialization_failed') {
-        errorMessage = `Domain not registered in Google Cloud Console. Please add ${window.location.origin} to your allowed origins.`;
-        console.error(`Google Calendar Setup Error: This domain (${window.location.origin}) has not been registered in the Google Cloud Console.`);
+        const currentOrigin = window.location.origin;
+        errorMessage = `Your domain (${currentOrigin}) is not registered with Google Cloud Console`;
+        errorDetails = `Please add ${currentOrigin} to your Google Cloud Console authorized origins.`;
+        console.error(`Google Calendar Setup Error: This domain (${currentOrigin}) has not been registered in the Google Cloud Console.`);
       } else if (errorObj?.error?.code === 400 && errorObj?.error?.message?.includes('API key not valid')) {
         errorMessage = "Invalid API key. Check your Google Cloud Console configuration.";
         console.error('Google Calendar Setup Error: Invalid API key.');
@@ -52,7 +56,7 @@ export const useGoogleCalendarAuth = () => {
       
       toast({
         title: "Google Calendar Connection Error",
-        description: errorMessage,
+        description: `${errorMessage}. ${errorDetails}`,
         variant: "destructive",
       });
       
@@ -62,7 +66,12 @@ export const useGoogleCalendarAuth = () => {
   
   // Check if user is authenticated
   const isAuthenticated = (): boolean => {
-    return window.gapi?.auth2?.getAuthInstance()?.isSignedIn?.get() || false;
+    try {
+      return window.gapi?.auth2?.getAuthInstance()?.isSignedIn?.get() || false;
+    } catch (error) {
+      console.error("Error checking authentication status:", error);
+      return false;
+    }
   };
   
   // Login to Google
@@ -74,15 +83,18 @@ export const useGoogleCalendarAuth = () => {
       }
       
       if (!isAuthenticated()) {
-        await window.gapi.auth2.getAuthInstance().signIn({
+        const result = await window.gapi.auth2.getAuthInstance().signIn({
           prompt: 'select_account',
           ux_mode: 'popup'
         });
         
-        toast({
-          title: "Successfully connected to Google Calendar",
-          description: "Your calendar events will now sync with Shinko",
-        });
+        if (result) {
+          toast({
+            title: "Successfully connected to Google Calendar",
+            description: "Your calendar events will now sync with Shinko",
+          });
+          return true;
+        }
       }
       
       return isAuthenticated();
@@ -90,20 +102,26 @@ export const useGoogleCalendarAuth = () => {
       console.error("Error signing in to Google:", error);
       const errorObj = error as any;
       let errorMessage = "Could not sign in to Google Calendar";
+      let detailedError = "";
       
       if (errorObj?.error === 'popup_blocked_by_browser') {
-        errorMessage += ". Please allow popups for this site.";
+        detailedError = "Please allow popups for this site and try again.";
       } else if (errorObj?.error === 'access_denied') {
-        errorMessage += ". You denied access to your Google account.";
+        detailedError = "You denied access to your Google account.";
       } else if (errorObj?.error === 'immediate_failed') {
-        errorMessage += `. Please ensure you've added ${window.location.origin} to your Google API allowed origins.`;
+        const currentOrigin = window.location.origin;
+        detailedError = `Please ensure you've added ${currentOrigin} to your Google API allowed origins in the Google Cloud Console.`;
       } else if (errorObj?.details) {
-        errorMessage += `. ${errorObj.details}`;
+        detailedError = errorObj.details;
+      } else if (typeof errorObj === 'string') {
+        detailedError = errorObj;
+      } else if (errorObj instanceof Error) {
+        detailedError = errorObj.message;
       }
       
       toast({
         title: "Sign in failed",
-        description: errorMessage,
+        description: `${errorMessage}${detailedError ? `: ${detailedError}` : ''}`,
         variant: "destructive",
       });
       return false;

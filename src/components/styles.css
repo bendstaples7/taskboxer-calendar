@@ -111,3 +111,46 @@
   border-color: #4b5563 !important;
 }
 
+/* Task Board Trello-like styles */
+.task-board-container {
+  display: flex;
+  height: 100%;
+  gap: 16px;
+  padding: 8px;
+  background-color: #f3f4f6;
+  overflow-x: auto;
+}
+
+.task-board-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 280px;
+  width: 280px;
+  background-color: #e5e7eb;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.task-board-column-header {
+  font-weight: 600;
+  margin-bottom: 8px;
+  padding: 8px;
+}
+
+.task-board-tasks {
+  flex-grow: 1;
+  overflow-y: auto;
+  max-height: calc(100% - 100px);
+  padding: 4px;
+}
+
+.task-board-footer {
+  margin-top: 8px;
+  padding: 8px;
+}
+
+/* Make modal scrollable but keep in viewport */
+.modal-content {
+  max-height: 80vh;
+  overflow-y: auto;
+}

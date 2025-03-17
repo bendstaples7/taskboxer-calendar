@@ -49,6 +49,8 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  const [lastToastTimestamp, setLastToastTimestamp] = useState<number>(0);
+
   const { 
     isInitialized, 
     calendarEvents, 
@@ -134,14 +136,20 @@ const Index = () => {
     });
   }, []);
 
+  const showToast = (title: string, description: string, variant: "default" | "destructive" = "default") => {
+    const now = Date.now();
+    // Only show toast if more than 2 seconds have passed since the last one
+    if (now - lastToastTimestamp > 2000) {
+      toast({ title, description, variant });
+      setLastToastTimestamp(now);
+    }
+  };
+
   const handleAddTask = async (task: Task) => {
     const newTask = await createTask(task);
     if (newTask) {
       setTasks(prev => [...prev, newTask]);
-      toast({
-        title: "Task added",
-        description: `"${task.title}" has been added to ${task.priority} priority.`,
-      });
+      showToast("Task added", `"${task.title}" has been added to ${task.priority} priority.`);
     }
   };
 
@@ -153,29 +161,41 @@ const Index = () => {
   };
 
   const handleTaskSchedule = async (task: Task, startTime: Date) => {
-    const endTime = addMinutes(startTime, task.estimatedTime);
-    const updatedTask = { 
-      ...task, 
-      scheduled: { start: startTime, end: endTime } 
-    };
-    
-    if (isInitialized) {
-      const taskWithGoogleId = await addTaskToCalendar(updatedTask);
-      await updateTask(taskWithGoogleId);
-      setTasks(prev => prev.map(t => 
-        t.id === task.id ? taskWithGoogleId : t
-      ));
+    if (task.id) {
+      // Existing task being scheduled
+      const endTime = addMinutes(startTime, task.estimatedTime);
+      const updatedTask = { 
+        ...task, 
+        scheduled: { start: startTime, end: endTime } 
+      };
+      
+      if (isInitialized) {
+        const taskWithGoogleId = await addTaskToCalendar(updatedTask);
+        await updateTask(taskWithGoogleId);
+        setTasks(prev => prev.map(t => 
+          t.id === task.id ? taskWithGoogleId : t
+        ));
+      } else {
+        await updateTask(updatedTask);
+        setTasks(prev => prev.map(t => 
+          t.id === task.id ? updatedTask : t
+        ));
+      }
+  
+      showToast("Task scheduled", `"${task.title}" has been scheduled on the calendar.`);
     } else {
-      await updateTask(updatedTask);
-      setTasks(prev => prev.map(t => 
-        t.id === task.id ? updatedTask : t
-      ));
+      // New task being created from calendar drag
+      const endTime = addMinutes(startTime, task.estimatedTime || 30);
+      const newTask = {
+        ...task,
+        id: uuidv4(),
+        scheduled: { start: startTime, end: endTime }
+      };
+      
+      // Open the add task dialog with the pre-filled task
+      setSelectedTask(newTask as Task);
+      setTaskDialogOpen(true);
     }
-
-    toast({
-      title: "Task scheduled",
-      description: `"${task.title}" has been scheduled on the calendar.`,
-    });
   };
 
   const handleResizeTask = async (taskId: string, newDuration: number) => {
@@ -233,10 +253,7 @@ const Index = () => {
       t.id === taskId ? updatedTask : t
     ));
 
-    toast({
-      title: "Task unscheduled",
-      description: "Task has been moved back to the task board.",
-    });
+    showToast("Task unscheduled", "Task has been moved back to the task board.");
   };
 
   const handleTaskComplete = async (taskId: string) => {
@@ -261,10 +278,7 @@ const Index = () => {
       t.id === taskId ? updatedTask : t
     ));
 
-    toast({
-      title: "Task completed",
-      description: "Great job! Task has been marked as completed.",
-    });
+    showToast("Task completed", "Great job! Task has been marked as completed.");
   };
 
   const handleTaskClick = (task: Task) => {
@@ -283,10 +297,7 @@ const Index = () => {
       t.id === updatedTask.id ? updatedTask : t
     ));
     
-    toast({
-      title: "Task updated",
-      description: `"${updatedTask.title}" has been updated.`,
-    });
+    showToast("Task updated", `"${updatedTask.title}" has been updated.`);
   };
 
   const handleStartTimer = async (taskId: string) => {
@@ -322,10 +333,7 @@ const Index = () => {
           ));
         }
         
-        toast({
-          title: "Task started",
-          description: `"${taskToStart.title}" has been scheduled and started.`,
-        });
+        showToast("Task started", `"${taskToStart.title}" has been scheduled and started.`);
         
         return;
       }
@@ -374,10 +382,7 @@ const Index = () => {
       return updatedTasks;
     });
 
-    toast({
-      title: "Timer paused",
-      description: "Task timer has been paused. You can resume it later.",
-    });
+    showToast("Timer paused", "Task timer has been paused. You can resume it later.");
   };
 
   const handleTaskMove = async (taskId: string, newPriority: Priority, newPosition?: number) => {
@@ -448,10 +453,7 @@ const Index = () => {
       return updatedTasks;
     });
 
-    toast({
-      title: "Task moved",
-      description: `Task has been moved to ${newPriority} priority.`,
-    });
+    showToast("Task moved", `Task has been moved to ${newPriority} priority.`);
   };
 
   const handleAddTime = async (taskId: string, minutes: number) => {
@@ -493,10 +495,7 @@ const Index = () => {
       return updatedTasks;
     });
 
-    toast({
-      title: "Time added",
-      description: `Added ${minutes} minutes to the task.`,
-    });
+    showToast("Time added", `Added ${minutes} minutes to the task.`);
   };
 
   const handleTaskDelete = async (taskId: string) => {
@@ -510,10 +509,7 @@ const Index = () => {
     
     setTasks(prev => prev.filter(t => t.id !== taskId));
     
-    toast({
-      title: "Task deleted",
-      description: "The task has been permanently deleted.",
-    });
+    showToast("Task deleted", "The task has been permanently deleted.");
   };
 
   const toggleCalendarExpanded = () => {
@@ -641,6 +637,9 @@ const Index = () => {
               onTaskDragToBoard={handleTaskMove}
               onStartTask={handleStartTimer}
               onTaskDelete={handleTaskDelete}
+              onAddTask={handleAddTask}
+              availableLabels={labels}
+              onAddLabel={handleAddLabel}
             />
           </AnimatedPanel>
           

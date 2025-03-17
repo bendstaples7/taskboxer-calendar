@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar, LogOut, AlertCircle } from 'lucide-react';
@@ -9,128 +8,184 @@ interface GoogleCalendarConnectProps {
   onEventsLoaded: (events: any[]) => void;
 }
 
-const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({ 
-  onEventsLoaded 
+const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
+  onEventsLoaded
 }) => {
-  const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const googleCalendarService = useGoogleCalendarService();
+  const [isConnected, setIsConnected] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
   const { toast } = useToast();
-
-  // Load the Google API script
+  const googleCalendarService = useGoogleCalendarService();
+  
   useEffect(() => {
-    const loadGoogleApi = () => {
-      // Only load if not already loaded
-      if (window.gapi) {
-        googleCalendarService.initializeGoogleApi()
-          .then(initialized => {
-            if (initialized) {
-              setIsConnected(googleCalendarService.isAuthenticated());
-            }
-          });
-        return;
+    const checkConnection = async () => {
+      try {
+        await googleCalendarService.initializeGoogleApi();
+        const authenticated = googleCalendarService.isAuthenticated();
+        setIsConnected(authenticated);
+        
+        if (authenticated) {
+          loadEvents();
+        }
+      } catch (error) {
+        console.error("Error checking Google Calendar connection:", error);
+        setIsConnected(false);
       }
-      
-      const script = document.createElement('script');
-      script.src = 'https://apis.google.com/js/api.js';
-      script.onload = () => {
-        googleCalendarService.initializeGoogleApi()
-          .then(initialized => {
-            if (initialized) {
-              setIsConnected(googleCalendarService.isAuthenticated());
-            }
-          });
-      };
-      document.body.appendChild(script);
     };
-
-    loadGoogleApi();
+    
+    if (window.gapi) {
+      checkConnection();
+    } else {
+      // Script will be loaded by useGoogleCalendarSync
+      setIsConnected(false);
+    }
   }, []);
-
+  
   const handleConnect = async () => {
     setIsLoading(true);
     try {
-      // Show instructions to the user
-      toast({
-        title: "Connecting to Google Calendar",
-        description: "Please ensure this domain is added to your Google Cloud Console's allowed origins.",
-      });
-      
       const success = await googleCalendarService.signIn();
       setIsConnected(success);
       
       if (success) {
-        // Load events for the next month
-        const now = new Date();
-        const oneMonthLater = new Date();
-        oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-        
-        const events = await googleCalendarService.fetchEvents(now, oneMonthLater);
-        onEventsLoaded(events);
+        loadEvents();
       }
     } catch (error) {
       console.error("Error connecting to Google Calendar:", error);
+      toast({
+        title: "Connection failed",
+        description: "Could not connect to Google Calendar. See console for details.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   };
-
+  
   const handleDisconnect = async () => {
     setIsLoading(true);
     try {
       await googleCalendarService.signOut();
       setIsConnected(false);
-      onEventsLoaded([]);
+      
+      toast({
+        title: "Disconnected",
+        description: "Successfully disconnected from Google Calendar.",
+      });
     } catch (error) {
       console.error("Error disconnecting from Google Calendar:", error);
     } finally {
       setIsLoading(false);
     }
   };
-
-  const openHelpInstructions = () => {
-    toast({
-      title: "Google Calendar Setup Guide",
-      description: "1. Go to Google Cloud Console\n2. Select your project\n3. Navigate to APIs & Services > Credentials\n4. Edit your OAuth Client\n5. Add this domain to Authorized JavaScript origins",
-      duration: 10000,
-    });
+  
+  const loadEvents = async () => {
+    setIsLoading(true);
+    try {
+      const start = new Date();
+      start.setDate(start.getDate() - 7); // One week ago
+      
+      const end = new Date();
+      end.setDate(end.getDate() + 30); // 30 days from now
+      
+      const events = await googleCalendarService.fetchEvents(start, end);
+      
+      if (onEventsLoaded) {
+        onEventsLoaded(events);
+      }
+      
+      toast({
+        title: "Calendar synced",
+        description: `${events.length} events loaded from Google Calendar.`,
+      });
+    } catch (error) {
+      console.error("Error loading events from Google Calendar:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
-
+  
+  const toggleInstructions = () => {
+    setShowInstructions(!showInstructions);
+  };
+  
   return (
-    <div className="flex gap-2">
-      {isConnected ? (
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleDisconnect}
-          disabled={isLoading}
-          className="text-gray-700 bg-gray-100 hover:bg-gray-200"
-        >
-          <LogOut className="h-4 w-4 mr-1" />
-          Disconnect Calendar
-        </Button>
-      ) : (
-        <>
-          <Button 
-            variant="outline" 
-            size="sm" 
+    <div>
+      <div className="flex items-center gap-2">
+        {isConnected ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDisconnect}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <span className="flex items-center">
+                Loading...
+              </span>
+            ) : (
+              <span className="flex items-center">
+                <span className="bg-green-500 w-2 h-2 rounded-full mr-2"></span>
+                Connected to Google Calendar
+              </span>
+            )}
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleConnect}
             disabled={isLoading}
-            className="text-gray-700 bg-gray-100 hover:bg-gray-200"
           >
-            <Calendar className="h-4 w-4 mr-1" />
-            Connect Google Calendar
+            {isLoading ? (
+              "Connecting..."
+            ) : (
+              "Connect Google Calendar"
+            )}
           </Button>
+        )}
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleInstructions}
+        >
+          ?
+        </Button>
+      </div>
+      
+      {showInstructions && (
+        <div className="mt-2 p-3 bg-gray-50 rounded-md text-sm">
+          <h3 className="font-medium mb-1">Troubleshooting Google Calendar Connection</h3>
+          <p className="mb-2">
+            If you encounter issues connecting to Google Calendar, please ensure:
+          </p>
+          <ol className="list-decimal pl-5 space-y-1">
+            <li>
+              Your domain is registered in the Google Cloud Console.
+              Add <strong>{window.location.origin}</strong> to your Google API authorized origins.
+            </li>
+            <li>
+              Your API key is valid and properly configured.
+            </li>
+            <li>
+              You have enabled the Google Calendar API in your Google Cloud Console.
+            </li>
+            <li>
+              You have added <strong>{window.location.origin}</strong> to the authorized redirect URIs.
+            </li>
+          </ol>
           <Button
-            variant="ghost"
-            size="icon"
-            onClick={openHelpInstructions}
-            title="Setup Help"
-            className="h-9 w-9"
+            variant="link"
+            size="sm"
+            className="mt-2 p-0 h-auto text-gray-600"
+            asChild
           >
-            <AlertCircle className="h-4 w-4 text-gray-500" />
+            <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">
+              Open Google Cloud Console
+            </a>
           </Button>
-        </>
+        </div>
       )}
     </div>
   );
