@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Play, Pause, Plus, Check, Timer } from "lucide-react";
@@ -80,14 +81,13 @@ const ActiveTasksDropdown: React.FC<ActiveTasksDropdownProps> = ({ activeTasks, 
       <PopoverContent 
         className="w-72 p-3"
         align="end"
+        side="bottom"
         sideOffset={5}
+        avoidCollisions={true}
         style={{ 
-          maxHeight: 'calc(90vh - 100px)', 
+          maxHeight: '400px', 
           overflowY: 'auto', 
-          maxWidth: '90vw',
-          position: 'fixed',
-          top: 'auto',
-          bottom: 'auto'
+          maxWidth: '90vw'
         }}
       >
         <div className="flex flex-col space-y-3">
@@ -117,7 +117,7 @@ const ActiveTasksDropdown: React.FC<ActiveTasksDropdownProps> = ({ activeTasks, 
                 <div className="flex justify-between items-center mt-2">
                   <div className="flex items-center gap-2">
                     <TaskProgressCircle progress={getElapsedPercentage(task)} size={16} />
-                    <span className="text-xs">
+                    <span className="text-sm">
                       {formatTime(currentTimes[task.id] || 0)} / {formatTime(task.estimatedTime)}
                     </span>
                   </div>

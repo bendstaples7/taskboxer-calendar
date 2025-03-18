@@ -63,19 +63,16 @@ const GoogleCalendarInstructions: React.FC<GoogleCalendarInstructionsProps> = ({
                 </Button>
               </div>
             </li>
+            <li className="text-red-500 font-medium">
+              Make sure there are NO trailing slashes in the origin URL!
+            </li>
             <li>
-              Also add these variations if needed:
-              <ul className="list-disc pl-5 mt-2 space-y-1">
-                <li>
-                  <code className="bg-gray-100 px-2 py-0.5 rounded text-xs font-mono">
-                    {currentDomain.replace('https://', 'http://')}
-                  </code>
-                </li>
-                <li>
-                  <code className="bg-gray-100 px-2 py-0.5 rounded text-xs font-mono">
-                    {currentDomain.replace('.lovable.app', '.lovableproject.com')}
-                  </code>
-                </li>
+              For the error "invalid_client":
+              <ul className="list-disc pl-5 mt-2 space-y-1 text-amber-700">
+                <li>Double-check that there's no typo in the domain</li>
+                <li>Ensure you're using the same Google account that owns the project</li>
+                <li>Try clearing your browser cache and cookies</li>
+                <li>Make sure you've created OAuth consent screen</li>
               </ul>
             </li>
             <li>Click <strong>Save</strong> to update your client configuration</li>

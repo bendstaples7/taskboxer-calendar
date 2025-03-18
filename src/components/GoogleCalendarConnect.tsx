@@ -25,7 +25,11 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
   const isDevelopment = window.location.hostname === 'localhost' || 
                         window.location.hostname === '127.0.0.1' ||
                         window.location.hostname.includes('lovable.app') ||
-                        window.location.hostname.includes('lovable-project.com');
+                        window.location.hostname.includes('lovable-project.com') ||
+                        window.location.hostname.includes('shinko.lovable.app');
+  
+  // Get the current origin
+  const currentOrigin = window.location.origin;
   
   useEffect(() => {
     const checkConnection = async () => {
@@ -92,23 +96,31 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
     } catch (error: any) {
       console.error("Error connecting to Google Calendar:", error);
       
-      // Show setup instructions for most errors since that's the common issue
-      setShowSetupDialog(true);
+      // Extract the specific error message for invalid_client error
+      let errorMessage = "Failed to connect to Google Calendar";
       
-      // Check for specific error types
-      if (error?.error === "popup_closed_by_user") {
-        setError("Sign-in popup was closed. Please try again.");
+      if (error?.error === "invalid_client") {
+        errorMessage = "Invalid client ID - Please update the authorized origins in Google Cloud Console";
+        // Always show setup dialog for this error
+        setShowSetupDialog(true);
+      } else if (error?.error === "popup_closed_by_user") {
+        errorMessage = "Sign-in popup was closed. Please try again.";
       } else if (error?.error === "idpiframe_initialization_failed") {
-        setError("Domain not registered in Google Cloud Console. Please check console for details.");
+        errorMessage = `Domain not registered in Google Cloud Console. Please add ${currentOrigin} to authorized origins.`;
+        setShowSetupDialog(true);
       } else if (error?.error === "immediate_failed") {
-        setError("Google sign-in failed. Please check your browser settings and domain configuration.");
-      } else {
-        setError(`Sign-in failed: ${error?.error || error?.message || "Could not connect to Google Calendar"}`);
+        errorMessage = "Google sign-in failed. Please check browser settings and domain configuration.";
+        setShowSetupDialog(true);
+      } else if (error?.details) {
+        errorMessage = error.details;
+        setShowSetupDialog(true);
       }
+      
+      setError(errorMessage);
       
       toast({
         title: "Connection failed",
-        description: error?.error || error?.message || "Could not connect to Google Calendar",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -215,9 +227,15 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
       {/* Development mode notice */}
       {isDevelopment && !isConnected && (
         <div className="mt-2 text-xs text-amber-600 border border-amber-300 bg-amber-50 p-2 rounded">
-          <strong>Development notice:</strong> When testing in development environments 
-          (localhost or *.lovable.app), ensure you've added {window.location.origin} 
-          to your Google Cloud Console authorized origins.
+          <strong>Development notice:</strong> You need to update your Google Cloud Console to add {window.location.origin} 
+          to your authorized origins. 
+          <div className="mt-1">
+            <strong>Current error:</strong> {error ? error : "No specific error message detected"}
+          </div>
+          <div className="mt-1">
+            Looking at your screenshot, we need to add <code className="bg-amber-100 px-1 rounded">{window.location.origin}</code> to 
+            your authorized JavaScript origins.
+          </div>
         </div>
       )}
       

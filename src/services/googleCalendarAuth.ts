@@ -5,7 +5,9 @@ export const useGoogleCalendarAuth = () => {
   const { toast } = useToast();
   
   // Define your Google API credentials
-  const API_KEY = 'AIzaSyD4iE0ZKUuR4GqmRCZKYBLELEpq73cP4Zk';
+  // Using placeholder values - user should replace with their own valid credentials
+  // from their Google Cloud Console
+  const API_KEY = '';  // Reset API key - was invalid
   const CLIENT_ID = '621440005003-b6mlk5er35n4brfcnrp573jn8o33vj7e.apps.googleusercontent.com';
   
   const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'];
@@ -20,21 +22,27 @@ export const useGoogleCalendarAuth = () => {
       }
       
       // Load client & auth2 libraries
-      window.gapi.load('client:auth2', async () => {
-        try {
-          console.log("Initializing Google API client...");
-          await window.gapi.client.init({
-            apiKey: API_KEY,
-            clientId: CLIENT_ID,
-            discoveryDocs: DISCOVERY_DOCS,
-            scope: SCOPES,
-            ux_mode: 'popup',
-          });
-          
-          console.log("Google API client initialized");
-          resolve(true);
-        } catch (error) {
-          console.error("Error initializing Google API client:", error);
+      window.gapi.load('client:auth2', {
+        callback: async () => {
+          try {
+            console.log("Initializing Google API client...");
+            await window.gapi.client.init({
+              apiKey: API_KEY,
+              clientId: CLIENT_ID,
+              discoveryDocs: DISCOVERY_DOCS,
+              scope: SCOPES,
+              ux_mode: 'popup',
+            });
+            
+            console.log("Google API client initialized");
+            resolve(true);
+          } catch (error) {
+            console.error("Error initializing Google API client:", error);
+            reject(error);
+          }
+        },
+        onerror: (error) => {
+          console.error("Error loading Google API client libraries:", error);
           reject(error);
         }
       });

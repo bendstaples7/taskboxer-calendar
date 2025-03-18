@@ -12,9 +12,11 @@ interface TaskCardProps {
   isDragging?: boolean;
   onClick?: () => void;
   onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
   showStartButton?: boolean;
   onStartTask?: (taskId: string) => void;
   isCalendarView?: boolean;
+  draggable?: boolean;
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({ 
@@ -22,9 +24,11 @@ const TaskCard: React.FC<TaskCardProps> = ({
   isDragging, 
   onClick, 
   onDragStart,
+  onDragEnd,
   showStartButton,
   onStartTask,
-  isCalendarView 
+  isCalendarView,
+  draggable = false
 }) => {
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -82,8 +86,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
         task.completed && "border border-green-500 bg-green-50 opacity-80"
       )}
       onClick={onClick}
-      draggable={!!onDragStart}
+      draggable={draggable || !!onDragStart}
       onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
     >
       <CardHeader className="p-3 pb-0">
         <div className="flex justify-between items-start">
@@ -108,7 +113,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
           <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{task.description}</p>
         )}
         <div className="flex gap-1 flex-wrap">
-          {task.labels.map((label) => (
+          {task.labels && task.labels.map((label) => (
             <Badge 
               key={label.id} 
               style={{ backgroundColor: label.color }}
