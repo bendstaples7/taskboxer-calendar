@@ -77,22 +77,22 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
     e.preventDefault();
     
     // Only proceed if we have all the necessary data
-    if (draggedTaskId && dragOverTaskId && dragOverIndex !== null && onTaskMove) {
-      // Find the dragged task and its priority
+    if (draggedTaskId && dragOverTaskId && onTaskMove) {
+      // Find the dragged task and the target priority
       const draggedTask = tasks.find(t => t.id === draggedTaskId);
+      const targetTask = tasks.find(t => t.id === dragOverTaskId);
       
-      if (draggedTask) {
-        // Get the task where the dragged task was dropped
-        const targetTask = tasks.find(t => t.id === dragOverTaskId);
-        
-        if (targetTask) {
+      if (draggedTask && targetTask) {
+        // Only move if we're dropping on a different task
+        if (draggedTask.id !== targetTask.id) {
           const targetPriority = targetTask.priority;
+          const targetIndex = dragOverIndex || 0;
           
-          // Only move if we're dropping on a different task or at a different position
-          if (draggedTask.id !== targetTask.id) {
-            // Call the onTaskMove function with the correct parameters
-            onTaskMove(draggedTaskId, targetPriority, dragOverIndex);
-          }
+          // Call the onTaskMove function with the correct parameters
+          onTaskMove(draggedTaskId, targetPriority, targetIndex);
+          
+          // Log for debugging
+          console.log(`Moving task ${draggedTaskId} to ${targetPriority} at position ${targetIndex}`);
         }
       }
     }
