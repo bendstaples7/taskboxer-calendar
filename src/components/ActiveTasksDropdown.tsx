@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Play, Pause, Plus, Check, Timer } from "lucide-react";
@@ -19,7 +18,6 @@ const ActiveTasksDropdown: React.FC<ActiveTasksDropdownProps> = ({ activeTasks, 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Calculate initial elapsed times
     const times: { [key: string]: number } = {};
     activeTasks.forEach(task => {
       if (task.timerStarted) {
@@ -30,7 +28,6 @@ const ActiveTasksDropdown: React.FC<ActiveTasksDropdownProps> = ({ activeTasks, 
     });
     setCurrentTimes(times);
 
-    // Start interval to update times
     intervalRef.current = setInterval(() => {
       setCurrentTimes(prev => {
         const updated = { ...prev };
@@ -128,7 +125,7 @@ const ActiveTasksDropdown: React.FC<ActiveTasksDropdownProps> = ({ activeTasks, 
                   <div className="flex gap-1">
                     <Button 
                       variant="ghost" 
-                      size="xs" 
+                      size="sm" 
                       className="h-6 w-6 p-0 rounded-full"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -140,7 +137,7 @@ const ActiveTasksDropdown: React.FC<ActiveTasksDropdownProps> = ({ activeTasks, 
                     
                     <Button 
                       variant="ghost" 
-                      size="xs" 
+                      size="sm" 
                       className="h-6 w-6 p-0 rounded-full"
                       onClick={(e) => {
                         e.stopPropagation();
