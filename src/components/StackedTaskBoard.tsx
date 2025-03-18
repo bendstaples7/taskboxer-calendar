@@ -48,6 +48,7 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
   const handleTaskDragStart = (e: React.DragEvent, task: Task) => {
     setDraggedTaskId(task.id);
     e.dataTransfer.setData('application/json', JSON.stringify(task));
+    e.dataTransfer.effectAllowed = 'move';
     
     // Notify parent
     if (onDragStart) {
@@ -73,20 +74,30 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
   };
   
   const handleTaskDragEnd = (e: React.DragEvent) => {
-    // Implement task reordering
+    e.preventDefault();
+    
+    // Only proceed if we have all the necessary data
     if (draggedTaskId && dragOverTaskId && dragOverIndex !== null && onTaskMove) {
       // Find the dragged task and its priority
       const draggedTask = tasks.find(t => t.id === draggedTaskId);
       
       if (draggedTask) {
-        // Get the priority where the task was dropped
-        const task = tasks.find(t => t.id === dragOverTaskId);
-        if (task) {
-          onTaskMove(draggedTaskId, task.priority, dragOverIndex);
+        // Get the task where the dragged task was dropped
+        const targetTask = tasks.find(t => t.id === dragOverTaskId);
+        
+        if (targetTask) {
+          const targetPriority = targetTask.priority;
+          
+          // Only move if we're dropping on a different task or at a different position
+          if (draggedTask.id !== targetTask.id) {
+            // Call the onTaskMove function with the correct parameters
+            onTaskMove(draggedTaskId, targetPriority, dragOverIndex);
+          }
         }
       }
     }
     
+    // Reset the drag state
     setDraggedTaskId(null);
     setDragOverTaskId(null);
     setDragOverIndex(null);
