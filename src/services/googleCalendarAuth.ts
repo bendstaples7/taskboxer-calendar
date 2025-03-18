@@ -60,6 +60,14 @@ export const useGoogleCalendarAuth = () => {
         variant: "destructive",
       });
       
+      // Special handling for localhost development
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        toast({
+          title: "Development Environment Detected",
+          description: "For local development, make sure 'http://localhost:5173' and 'http://127.0.0.1:5173' are added to Authorized JavaScript origins in Google Cloud Console.",
+        });
+      }
+      
       return false;
     }
   };
@@ -124,6 +132,13 @@ export const useGoogleCalendarAuth = () => {
         description: `${errorMessage}${detailedError ? `: ${detailedError}` : ''}`,
         variant: "destructive",
       });
+      
+      // Display helpful troubleshooting for developers
+      console.log("Troubleshooting tips for Google Calendar:");
+      console.log(`1. Make sure ${window.location.origin} is added to Authorized JavaScript origins`);
+      console.log("2. Check that the correct Client ID and API Key are being used");
+      console.log("3. Verify the necessary scopes are enabled in your Google Cloud project");
+      
       return false;
     }
   };

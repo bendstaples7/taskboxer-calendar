@@ -9,7 +9,7 @@ interface CalendarTimeGridProps {
   columnWidth?: number;
   hourHeight?: number;
   isMinimized?: boolean;
-  hour?: number; // Added hour prop
+  hour?: number;
   onDragOver?: (e: React.DragEvent) => void;
   onDragLeave?: (e: React.DragEvent) => void;
   onDrop?: (e: React.DragEvent) => void;
@@ -40,6 +40,11 @@ const CalendarTimeGrid: React.FC<CalendarTimeGridProps> = ({
         onDragLeave={onDragLeave}
         onDrop={onDrop}
       >
+        {/* Hour label */}
+        <div className="absolute left-0 top-0 w-14 text-xs text-gray-500 font-medium">
+          {format(new Date().setHours(hour, 0, 0, 0), 'h a')}
+        </div>
+        
         {/* 5-minute grid lines - only visible when dragging */}
         {Array.from({ length: 12 }, (_, i) => i).map(i => (
           <div 

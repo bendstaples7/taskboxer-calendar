@@ -28,166 +28,221 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
   const [dragOverPriority, setDragOverPriority] = useState<Priority | null>(null);
   const [dragOverPosition, setDragOverPosition] = useState<number | null>(null);
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null);
-  const draggedTaskRef = useRef<Task | null>(null);
+  const dragPositionIndicatorRef = useRef<HTMLDivElement>(null);
+
+  const criticalTasks = tasks
+    .filter(task => task.priority === 'critical' && !task.completed && !task.scheduled)
+    .sort((a, b) => (a.position || 0) - (b.position || 0));
   
-  const handleDragStart = (e: React.DragEvent, task: Task) => {
-    setDraggedTaskId(task.id);
-    draggedTaskRef.current = task;
-    e.dataTransfer.setData('application/json', JSON.stringify(task));
+  const highTasks = tasks
+    .filter(task => task.priority === 'high' && !task.completed && !task.scheduled)
+    .sort((a, b) => (a.position || 0) - (b.position || 0));
+  
+  const mediumTasks = tasks
+    .filter(task => task.priority === 'medium' && !task.completed && !task.scheduled)
+    .sort((a, b) => (a.position || 0) - (b.position || 0));
+  
+  const lowTasks = tasks
+    .filter(task => task.priority === 'low' && !task.completed && !task.scheduled)
+    .sort((a, b) => (a.position || 0) - (b.position || 0));
+
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, task: Task) => {
+    e.dataTransfer.setData('taskId', task.id);
+    e.dataTransfer.setData('taskPriority', task.priority);
+    e.dataTransfer.setData('from', 'taskboard');
+    e.dataTransfer.effectAllowed = 'move';
     
-    // Notify parent
+    setDraggedTaskId(task.id);
+    
     if (onDragStart) {
       onDragStart(task);
     }
+    
+    // Create a drag preview
+    const preview = document.createElement('div');
+    preview.classList.add('task-drag-preview');
+    preview.textContent = task.title;
+    preview.style.position = 'absolute';
+    preview.style.top = '-1000px';
+    document.body.appendChild(preview);
+    e.dataTransfer.setDragImage(preview, 0, 0);
+    
+    // Cleanup the preview element after a short delay
+    setTimeout(() => {
+      document.body.removeChild(preview);
+    }, 0);
   };
 
-  const handleDragOver = (e: React.DragEvent, priority: Priority) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, priority: Priority, index: number = -1, taskId: string | null = null) => {
     e.preventDefault();
+    e.currentTarget.classList.add('drag-over');
+    
     setDragOverPriority(priority);
+    setDragOverPosition(index);
+    setDragOverTaskId(taskId);
     
-    // Calculate position within the priority list
-    const tasksInPriority = tasks.filter(t => 
-      t.priority === priority && !t.completed && !t.scheduled
-    );
+    // Get the position of the drag indicator
+    const container = e.currentTarget;
+    const rect = container.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const height = container.offsetHeight;
     
-    const boardRect = e.currentTarget.getBoundingClientRect();
-    const offsetY = e.clientY - boardRect.top;
-    const totalHeight = boardRect.height;
-    const position = Math.min(
-      Math.floor(offsetY / (totalHeight / (tasksInPriority.length + 1))),
-      tasksInPriority.length
-    );
+    // Create or update drop indicator
+    if (!dragPositionIndicatorRef.current) {
+      const indicator = document.createElement('div');
+      indicator.className = 'task-drag-indicator';
+      indicator.style.position = 'absolute';
+      indicator.style.left = '0';
+      indicator.style.right = '0';
+      indicator.style.height = '3px';
+      indicator.style.backgroundColor = '#3b82f6'; // Blue
+      indicator.style.zIndex = '50';
+      indicator.style.pointerEvents = 'none';
+      container.appendChild(indicator);
+      dragPositionIndicatorRef.current = indicator;
+    }
     
-    setDragOverPosition(position);
+    // Position the indicator at the mouse position
+    if (dragPositionIndicatorRef.current) {
+      // Check if cursor is in the top half or bottom half of the item
+      const isTopHalf = y < height / 2;
+      dragPositionIndicatorRef.current.style.top = isTopHalf ? '0' : `${height}px`;
+      dragPositionIndicatorRef.current.style.transform = 'translateY(-50%)';
+    }
   };
-  
-  const handleTaskDragOver = (e: React.DragEvent, task: Task, index: number) => {
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    
+    // Remove the drag indicator when leaving a column or item
+    const relatedTarget = e.relatedTarget as Node;
+    if (!e.currentTarget.contains(relatedTarget)) {
+      if (dragPositionIndicatorRef.current && dragPositionIndicatorRef.current.parentNode) {
+        dragPositionIndicatorRef.current.parentNode.removeChild(dragPositionIndicatorRef.current);
+        dragPositionIndicatorRef.current = null;
+      }
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, priority: Priority, index: number = -1) => {
     e.preventDefault();
     e.stopPropagation();
+    e.currentTarget.classList.remove('drag-over');
     
-    setDragOverTaskId(task.id);
-    setDragOverPriority(task.priority);
-    
-    // Determine if we're in the top or bottom half of the task
-    const rect = e.currentTarget.getBoundingClientRect();
-    const isInTopHalf = e.clientY - rect.top < rect.height / 2;
-    
-    // Set the position before or after the current task
-    setDragOverPosition(isInTopHalf ? index : index + 1);
-  };
-  
-  const handleDragLeave = (e: React.DragEvent) => {
-    // Only clear if we're leaving the element we entered, not a child
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setDragOverPriority(null);
-      setDragOverPosition(null);
-      setDragOverTaskId(null);
+    // Remove the drag indicator
+    if (dragPositionIndicatorRef.current && dragPositionIndicatorRef.current.parentNode) {
+      dragPositionIndicatorRef.current.parentNode.removeChild(dragPositionIndicatorRef.current);
+      dragPositionIndicatorRef.current = null;
     }
-  };
-  
-  const handleTaskDragLeave = (e: React.DragEvent) => {
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setDragOverTaskId(null);
-    }
-  };
-  
-  const handleDrop = (e: React.DragEvent, priority: Priority) => {
-    e.preventDefault();
     
-    try {
-      const task = JSON.parse(e.dataTransfer.getData('application/json')) as Task;
+    const taskId = e.dataTransfer.getData('taskId');
+    const fromSource = e.dataTransfer.getData('from');
+    const originalPriority = e.dataTransfer.getData('taskPriority') as Priority;
+    
+    // Check if we're dropping on a different priority column or within the same column
+    if (fromSource === 'taskboard' && taskId && onTaskMove) {
+      // Get the position where to insert the task
+      let newPosition = index;
       
-      if (task && onTaskMove) {
-        onTaskMove(task.id, priority, dragOverPosition || undefined);
+      // If we're dropping at the end of the list
+      if (index === -1) {
+        const tasksInColumn = tasks.filter(t => 
+          t.priority === priority && !t.completed && !t.scheduled
+        ).length;
+        newPosition = tasksInColumn;
       }
-    } catch (error) {
-      console.error("Error parsing dropped task:", error);
+      
+      // If dropping on a task, get the right position based on cursor position
+      if (dragOverTaskId) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const height = e.currentTarget.offsetHeight;
+        const isTopHalf = y < height / 2;
+        
+        // If dropping in bottom half, insert after the task
+        if (!isTopHalf) {
+          newPosition += 1;
+        }
+      }
+      
+      // Only call onTaskMove if we're actually moving the task
+      if (priority !== originalPriority || newPosition !== -1) {
+        onTaskMove(taskId, priority, newPosition);
+      }
     }
     
     setDraggedTaskId(null);
     setDragOverPriority(null);
     setDragOverPosition(null);
     setDragOverTaskId(null);
-    draggedTaskRef.current = null;
   };
-  
-  const handleCalendarDrop = (e: React.DragEvent) => {
-    try {
-      const task = JSON.parse(e.dataTransfer.getData('application/json')) as Task;
-      const dropTime = new Date(e.dataTransfer.getData('text/plain'));
-      
-      if (task && dropTime && onTaskDragToCalendar) {
-        onTaskDragToCalendar(task, dropTime);
-      }
-    } catch (error) {
-      console.error("Error handling calendar drop:", error);
+
+  const handleDragEnd = () => {
+    setDraggedTaskId(null);
+    setDragOverPriority(null);
+    setDragOverPosition(null);
+    setDragOverTaskId(null);
+    
+    // Ensure the drag indicator is removed
+    if (dragPositionIndicatorRef.current && dragPositionIndicatorRef.current.parentNode) {
+      dragPositionIndicatorRef.current.parentNode.removeChild(dragPositionIndicatorRef.current);
+      dragPositionIndicatorRef.current = null;
     }
   };
-  
-  const priorities: Priority[] = ['critical', 'high', 'medium', 'low'];
-  
-  return (
-    <div className={`task-board-container ${minimized ? 'flex-col' : 'grid grid-cols-4 gap-4 h-full'}`}>
-      {priorities.map(priority => {
-        const tasksInPriority = tasks.filter(t => 
-          t.priority === priority && !t.completed && !t.scheduled
-        ).sort((a, b) => (a.position || 0) - (b.position || 0));
-        
-        return (
-          <div 
-            key={priority} 
-            className={`task-board-column bg-gray-100 rounded-md p-3 flex flex-col ${dragOverPriority === priority ? 'bg-gray-200' : ''}`}
-            onDragOver={(e) => handleDragOver(e, priority)}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, priority)}
+
+  const renderTaskColumn = (title: string, priority: Priority, tasks: Task[]) => (
+    <div 
+      className="task-column h-full flex flex-col min-w-64"
+      onDragOver={(e) => handleDragOver(e, priority)}
+      onDragLeave={handleDragLeave}
+      onDrop={(e) => handleDrop(e, priority)}
+    >
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="font-semibold text-sm">{title} ({tasks.length})</h3>
+        {onAddTask && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-7 px-2"
+            onClick={() => onAddTask(priority)}
           >
-            <div className="task-board-column-header capitalize font-medium mb-3 text-sm">
-              {priority} Priority ({tasksInPriority.length})
-            </div>
-            
-            <div className="task-board-tasks flex-1 overflow-y-auto">
-              {tasksInPriority.map((task, index) => (
-                <div 
-                  key={task.id} 
-                  className={`mb-3 relative ${draggedTaskId === task.id ? 'opacity-50' : ''}`}
-                  onDragOver={(e) => handleTaskDragOver(e, task, index)}
-                  onDragLeave={handleTaskDragLeave}
-                  onDrop={(e) => handleDrop(e, priority)}
-                >
-                  {dragOverTaskId === task.id && draggedTaskId !== task.id && dragOverPosition === index && (
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500 -mt-1.5 rounded-full"></div>
-                  )}
-                  <TaskCard 
-                    task={task} 
-                    onClick={() => onTaskClick(task)} 
-                    onDragStart={(e) => handleDragStart(e, task)}
-                  />
-                  {dragOverTaskId === task.id && draggedTaskId !== task.id && dragOverPosition === index + 1 && (
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-500 -mb-1.5 rounded-full"></div>
-                  )}
-                </div>
-              ))}
-              {tasksInPriority.length === 0 && (
-                <div className="bg-white border border-dashed border-gray-300 rounded-md p-4 text-center text-gray-500 text-sm mb-3">
-                  No tasks
-                </div>
-              )}
-            </div>
-            
-            <div className="task-board-footer mt-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="w-full flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-200"
-                onClick={() => onAddTask && onAddTask(priority)}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Task
-              </Button>
-            </div>
+            <Plus className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+      
+      <div className="flex-1 overflow-auto pr-2">
+        {tasks.map((task, index) => (
+          <div 
+            key={task.id}
+            className={`task-item ${draggedTaskId === task.id ? 'opacity-50' : ''}`}
+            draggable
+            onDragStart={(e) => handleDragStart(e, task)}
+            onDragOver={(e) => handleDragOver(e, priority, index, task.id)}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, priority, index)}
+            onDragEnd={handleDragEnd}
+          >
+            <TaskCard 
+              task={task} 
+              onClick={() => onTaskClick(task)} 
+              isDragging={draggedTaskId === task.id}
+              showStartButton={true}
+              onStartTask={onTaskMove ? () => {} : undefined}
+            />
           </div>
-        );
-      })}
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="h-full flex gap-4 overflow-auto pr-3 pb-3">
+      {renderTaskColumn('Critical', 'critical', criticalTasks)}
+      {renderTaskColumn('High', 'high', highTasks)}
+      {renderTaskColumn('Medium', 'medium', mediumTasks)}
+      {renderTaskColumn('Low', 'low', lowTasks)}
     </div>
   );
 };

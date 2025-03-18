@@ -14,7 +14,7 @@ interface TaskControlsProps {
 
 const TaskControls: React.FC<TaskControlsProps> = (props) => {
   return (
-    <div className="w-full">
+    <div className="w-full flex justify-center">
       <TaskActions {...props} />
     </div>
   );
