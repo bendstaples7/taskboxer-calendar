@@ -66,7 +66,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onTaskResize,
   onAddTask,
   availableLabels = [],
-  onAddLabel
+  onAddLabel,
+  onStartTask
 }) => {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [currentTimePosition, setCurrentTimePosition] = useState<number>(0);
@@ -634,6 +635,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
                     onResizeStart={handleResizeStart}
+                    onStartTask={onStartTask}
                   />
                 ))
               )}
@@ -748,6 +750,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         onDragStart={handleDragStart}
                         onDragEnd={handleDragEnd}
                         onResizeStart={handleResizeStart}
+                        onStartTask={onStartTask}
                       />
                     ))
                   )}

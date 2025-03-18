@@ -21,6 +21,12 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
   const { toast } = useToast();
   const googleCalendarService = useGoogleCalendarService();
   
+  // Check if we're in development mode
+  const isDevelopment = window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1' ||
+                        window.location.hostname.includes('lovable.app') ||
+                        window.location.hostname.includes('lovable-project.com');
+  
   useEffect(() => {
     const checkConnection = async () => {
       try {
@@ -48,6 +54,7 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
   const handleConnect = async () => {
     setIsLoading(true);
     setError(null);
+    
     try {
       // Force a new initialization of the API to ensure we're trying with fresh settings
       try {
@@ -57,16 +64,21 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
         // Continue anyway, might still work
       }
       
-      const success = await googleCalendarService.signIn();
+      console.log("Starting Google sign-in process...");
+      
+      // Use popup mode for better compatibility
+      const success = await googleCalendarService.signIn(true);
       setIsConnected(success);
       
       if (success) {
+        console.log("Successfully signed in to Google");
         loadEvents();
         toast({
           title: "Connected successfully",
           description: "Your Google Calendar has been connected.",
         });
       } else {
+        console.log("Failed to sign in to Google");
         setError("Authentication failed. Please try again.");
         toast({
           title: "Connection failed",
@@ -87,16 +99,16 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
       if (error?.error === "popup_closed_by_user") {
         setError("Sign-in popup was closed. Please try again.");
       } else if (error?.error === "idpiframe_initialization_failed") {
-        setError("Domain not registered in Google Cloud Console");
+        setError("Domain not registered in Google Cloud Console. Please check console for details.");
       } else if (error?.error === "immediate_failed") {
-        setError("Google sign-in failed. Please check your domain configuration.");
+        setError("Google sign-in failed. Please check your browser settings and domain configuration.");
       } else {
-        setError(`Sign-in failed: ${error?.error || "Could not connect to Google Calendar"}`);
+        setError(`Sign-in failed: ${error?.error || error?.message || "Could not connect to Google Calendar"}`);
       }
       
       toast({
         title: "Connection failed",
-        description: error?.error || "Could not connect to Google Calendar",
+        description: error?.error || error?.message || "Could not connect to Google Calendar",
         variant: "destructive",
       });
     } finally {
@@ -146,10 +158,6 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
-  
-  const toggleInstructions = () => {
-    setShowInstructions(!showInstructions);
   };
   
   return (
@@ -204,37 +212,12 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
         </div>
       )}
       
-      {showInstructions && (
-        <div className="mt-2 p-3 bg-gray-50 rounded-md text-sm">
-          <h3 className="font-medium mb-1">Troubleshooting Google Calendar Connection</h3>
-          <p className="mb-2">
-            If you encounter issues connecting to Google Calendar, please ensure:
-          </p>
-          <ol className="list-decimal pl-5 space-y-1">
-            <li>
-              Your domain is registered in the Google Cloud Console.
-              Add <strong>{window.location.origin}</strong> to your Google API authorized origins.
-            </li>
-            <li>
-              Your API key is valid and properly configured.
-            </li>
-            <li>
-              You have enabled the Google Calendar API in your Google Cloud Console.
-            </li>
-            <li>
-              You have added <strong>{window.location.origin}</strong> to the authorized redirect URIs.
-            </li>
-          </ol>
-          <Button
-            variant="link"
-            size="sm"
-            className="mt-2 p-0 h-auto text-gray-600"
-            asChild
-          >
-            <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">
-              Open Google Cloud Console
-            </a>
-          </Button>
+      {/* Development mode notice */}
+      {isDevelopment && !isConnected && (
+        <div className="mt-2 text-xs text-amber-600 border border-amber-300 bg-amber-50 p-2 rounded">
+          <strong>Development notice:</strong> When testing in development environments 
+          (localhost or *.lovable.app), ensure you've added {window.location.origin} 
+          to your Google Cloud Console authorized origins.
         </div>
       )}
       

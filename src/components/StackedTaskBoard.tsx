@@ -12,6 +12,7 @@ interface StackedTaskBoardProps {
   minimized?: boolean;
   collapsedSections: string[];
   onToggleSection: (section: string) => void;
+  onTaskMove?: (taskId: string, newPriority: Priority, newPosition?: number) => void;
 }
 
 const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
@@ -21,7 +22,8 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
   onDragStart,
   minimized = true,
   collapsedSections,
-  onToggleSection
+  onToggleSection,
+  onTaskMove
 }) => {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null);
@@ -70,7 +72,21 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
     }
   };
   
-  const handleTaskDragEnd = () => {
+  const handleTaskDragEnd = (e: React.DragEvent) => {
+    // Implement task reordering
+    if (draggedTaskId && dragOverTaskId && dragOverIndex !== null && onTaskMove) {
+      // Find the dragged task and its priority
+      const draggedTask = tasks.find(t => t.id === draggedTaskId);
+      
+      if (draggedTask) {
+        // Get the priority where the task was dropped
+        const task = tasks.find(t => t.id === dragOverTaskId);
+        if (task) {
+          onTaskMove(draggedTaskId, task.priority, dragOverIndex);
+        }
+      }
+    }
+    
     setDraggedTaskId(null);
     setDragOverTaskId(null);
     setDragOverIndex(null);
@@ -95,8 +111,10 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
           task={task} 
           onClick={() => onTaskClick(task)} 
           onDragStart={(e) => handleTaskDragStart(e, task)}
+          onDragEnd={handleTaskDragEnd}
           showStartButton={showStartButton}
           isCalendarView={true}
+          draggable={true}
         />
         {dragOverTaskId === task.id && dragOverIndex === index + 1 && (
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-500 -mb-1.5 rounded-full z-10"></div>
@@ -105,7 +123,7 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
     );
   };
 
-  // Placeholder functions to satisfy TaskBoardSection props
+  // Functions to pass to TaskBoardSection
   const handlePlaceholderDragOver = (e: React.DragEvent, priority: Priority, index?: number) => {
     e.preventDefault();
   };
@@ -116,6 +134,17 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
   
   const handlePlaceholderDrop = (e: React.DragEvent, priority: Priority, dropIndex?: number) => {
     e.preventDefault();
+    
+    // Move task to this priority, potentially at a specific index
+    try {
+      const taskData = e.dataTransfer.getData('application/json');
+      if (taskData && onTaskMove) {
+        const task = JSON.parse(taskData);
+        onTaskMove(task.id, priority, dropIndex);
+      }
+    } catch (error) {
+      console.error('Error handling task drop:', error);
+    }
   };
   
   return (

@@ -107,7 +107,7 @@ const CalendarItem: React.FC<CalendarItemProps> = ({
   
   const handleStartTask = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isTask && onStartTask) {
+    if (isTask && onStartTask && (item as Task).id) {
       onStartTask((item as Task).id);
     }
   };
