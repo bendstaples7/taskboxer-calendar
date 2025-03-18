@@ -339,14 +339,16 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({
         </div>
         
         <DialogFooter className="pt-2 flex items-center justify-center w-full">
-          <TaskControls 
-            task={task}
-            onStartTimer={onStartTimer}
-            onStopTimer={onStopTimer}
-            onComplete={onComplete}
-            onUnschedule={onUnschedule}
-            onDelete={onDelete}
-          />
+          <div className="flex justify-center w-full">
+            <TaskControls 
+              task={task}
+              onStartTimer={onStartTimer}
+              onStopTimer={onStopTimer}
+              onComplete={onComplete}
+              onUnschedule={onUnschedule}
+              onDelete={onDelete}
+            />
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

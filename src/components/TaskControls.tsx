@@ -1,8 +1,7 @@
 
 import React from 'react';
-import { Button } from "@/components/ui/button";
-import { Task } from "@/lib/types";
-import { CheckCircle, Play, Pause, Calendar, Trash } from "lucide-react";
+import { Task } from '@/lib/types';
+import TaskActions from './TaskActions';
 
 interface TaskControlsProps {
   task: Task;
@@ -13,70 +12,10 @@ interface TaskControlsProps {
   onDelete?: () => void;
 }
 
-const TaskControls: React.FC<TaskControlsProps> = ({
-  task,
-  onStartTimer,
-  onStopTimer,
-  onComplete,
-  onUnschedule,
-  onDelete
-}) => {
-  const isRunning = task.timerStarted && !task.timerPaused && !task.completed && !task.timerExpired;
-
+const TaskControls: React.FC<TaskControlsProps> = (props) => {
   return (
-    <div className="space-y-2 w-full flex flex-col items-center">
-      {isRunning ? (
-        <Button 
-          className="w-full bg-orange-500 hover:bg-orange-600"
-          onClick={onStopTimer}
-        >
-          <Pause className="h-4 w-4 mr-2" />
-          Pause Timer
-        </Button>
-      ) : (
-        <Button 
-          className="w-full bg-gray-700 hover:bg-gray-800"
-          onClick={onStartTimer}
-          disabled={task.completed}
-        >
-          <Calendar className="h-4 w-4 mr-2" />
-          <Play className="h-4 w-4 mr-1" />
-          {task.scheduled ? 'Resume Task' : 'Start Task Now'}
-        </Button>
-      )}
-      
-      <div className="flex justify-center gap-2 w-full">
-        {task.scheduled && onUnschedule && (
-          <Button 
-            variant="outline" 
-            onClick={onUnschedule}
-            className="flex-1"
-          >
-            Unschedule Task
-          </Button>
-        )}
-        
-        <Button 
-          variant="destructive" 
-          onClick={onComplete}
-          className="flex-1 bg-green-600 hover:bg-green-700"
-          disabled={task.completed}
-        >
-          <CheckCircle className="h-4 w-4 mr-1" />
-          Mark as Completed
-        </Button>
-        
-        {onDelete && (
-          <Button 
-            variant="destructive" 
-            onClick={onDelete}
-            className="flex-1"
-          >
-            <Trash className="h-4 w-4 mr-1" />
-            Delete
-          </Button>
-        )}
-      </div>
+    <div className="w-full">
+      <TaskActions {...props} />
     </div>
   );
 };

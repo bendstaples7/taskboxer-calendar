@@ -12,6 +12,7 @@ import {
 import { Task } from "@/lib/types";
 import { Play, Clock, Plus, Check, AlarmClock } from "lucide-react";
 import TaskProgressCircle from './TaskProgressCircle';
+import { Progress } from "@/components/ui/progress";
 
 interface ActiveTasksDropdownProps {
   activeTasks: Task[];
@@ -72,45 +73,59 @@ const ActiveTasksDropdown: React.FC<ActiveTasksDropdownProps> = ({
         <DropdownMenuLabel>Running Tasks</DropdownMenuLabel>
         <DropdownMenuSeparator />
         
-        {activeTasks.map(task => (
-          <DropdownMenuItem
-            key={task.id}
-            className="flex flex-col items-stretch py-2 cursor-pointer"
-            onClick={() => {
-              onOpenTask(task);
-              setOpen(false);
-            }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-medium">{task.title}</span>
-              <TaskProgressCircle progress={getProgress(task)} size={18} />
-            </div>
-            
-            <div className="text-xs text-gray-500 flex justify-between items-center">
-              <div className="flex items-center">
-                <Clock className="h-3 w-3 mr-1" />
-                {formatTime(task.estimatedTime)}
+        {activeTasks.map(task => {
+          const progress = getProgress(task) * 100;
+          return (
+            <DropdownMenuItem
+              key={task.id}
+              className="flex flex-col items-stretch py-2 cursor-pointer"
+              onClick={() => {
+                onOpenTask(task);
+                setOpen(false);
+              }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-medium">{task.title}</span>
+                <TaskProgressCircle progress={getProgress(task)} size={18} />
               </div>
               
-              <div className="flex gap-1">
-                <button
-                  className="rounded-full bg-gray-200 hover:bg-gray-300 p-1"
-                  onClick={(e) => handleAddTime(task.id, 15, e)}
-                  title="Add 15 minutes"
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
-                <button
-                  className="rounded-full bg-green-100 hover:bg-green-200 p-1"
-                  onClick={(e) => handleComplete(task.id, e)}
-                  title="Mark complete"
-                >
-                  <Check className="h-3 w-3 text-green-700" />
-                </button>
+              {/* Progress bar showing elapsed time */}
+              <div className="mb-2">
+                <Progress value={progress} className="h-2" />
+                <div className="flex justify-between text-xs mt-1 text-gray-500">
+                  <span>{task.timerElapsed ? formatTime(task.timerElapsed) : '0m'}</span>
+                  <span>{formatTime(task.estimatedTime)}</span>
+                </div>
               </div>
-            </div>
-          </DropdownMenuItem>
-        ))}
+              
+              <div className="text-xs text-gray-500 flex justify-between items-center">
+                <div className="flex items-center">
+                  <Clock className="h-3 w-3 mr-1" />
+                  <span>
+                    {Math.round(progress)}% complete
+                  </span>
+                </div>
+                
+                <div className="flex gap-1">
+                  <button
+                    className="rounded-full bg-gray-200 hover:bg-gray-300 p-1"
+                    onClick={(e) => handleAddTime(task.id, 15, e)}
+                    title="Add 15 minutes"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                  <button
+                    className="rounded-full bg-green-100 hover:bg-green-200 p-1"
+                    onClick={(e) => handleComplete(task.id, e)}
+                    title="Mark complete"
+                  >
+                    <Check className="h-3 w-3 text-green-700" />
+                  </button>
+                </div>
+              </div>
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

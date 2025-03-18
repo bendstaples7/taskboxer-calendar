@@ -49,6 +49,14 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
     setIsLoading(true);
     setError(null);
     try {
+      // Force a new initialization of the API to ensure we're trying with fresh settings
+      try {
+        await googleCalendarService.initializeGoogleApi();
+      } catch (error) {
+        console.warn("Error during re-initialization:", error);
+        // Continue anyway, might still work
+      }
+      
       const success = await googleCalendarService.signIn();
       setIsConnected(success);
       
@@ -65,23 +73,30 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
           description: "Could not authenticate with Google Calendar.",
           variant: "destructive",
         });
+        
+        // Show setup instructions since this is likely a domain issue
+        setShowSetupDialog(true);
       }
     } catch (error: any) {
       console.error("Error connecting to Google Calendar:", error);
       
+      // Show setup instructions for most errors since that's the common issue
+      setShowSetupDialog(true);
+      
       // Check for specific error types
-      if (error.error === "popup_closed_by_user") {
+      if (error?.error === "popup_closed_by_user") {
         setError("Sign-in popup was closed. Please try again.");
-      } else if (error.error === "idpiframe_initialization_failed") {
+      } else if (error?.error === "idpiframe_initialization_failed") {
         setError("Domain not registered in Google Cloud Console");
-        setShowSetupDialog(true);
+      } else if (error?.error === "immediate_failed") {
+        setError("Google sign-in failed. Please check your domain configuration.");
       } else {
-        setError(`Sign-in failed: ${error.error || "Could not connect to Google Calendar"}`);
+        setError(`Sign-in failed: ${error?.error || "Could not connect to Google Calendar"}`);
       }
       
       toast({
         title: "Connection failed",
-        description: error.error || "Could not connect to Google Calendar",
+        description: error?.error || "Could not connect to Google Calendar",
         variant: "destructive",
       });
     } finally {
@@ -176,7 +191,7 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={toggleInstructions}
+          onClick={() => setShowSetupDialog(true)}
         >
           ?
         </Button>
