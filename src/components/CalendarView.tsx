@@ -113,7 +113,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   }, []);
 
   useEffect(() => {
-    if (scrollToCurrentTime && scrollAreaRef.current) {
+    // Always scroll to current time when component mounts
+    if (scrollAreaRef.current) {
       handleScrollToCurrentTime();
     }
   }, []);
@@ -165,6 +166,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       const minutes = getMinutes(now);
       const position = hours * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT;
       const viewportHeight = scrollAreaRef.current.clientHeight;
+      
+      // Center the current time in the viewport
       const scrollPosition = Math.max(0, position - viewportHeight / 2);
 
       setIsScrolling(true);
