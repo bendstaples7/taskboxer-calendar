@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Calendar, LogOut, AlertCircle } from 'lucide-react';
+import { Calendar, LogOut, AlertCircle, Settings } from 'lucide-react';
 import { useGoogleCalendarService } from '@/services/googleCalendarService';
 import { useToast } from '@/hooks/use-toast';
 import GoogleCalendarInstructions from './GoogleCalendarInstructions';
@@ -17,6 +18,7 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
   const [isConnected, setIsConnected] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [showSetupDialog, setShowSetupDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const googleCalendarService = useGoogleCalendarService();
@@ -211,19 +213,34 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
                 {isLoading ? (
                   "Connecting..."
                 ) : (
-                  "Connect Google Calendar"
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    Connect Google Calendar
+                  </span>
                 )}
               </Button>
             ) : (
-              <div className="text-sm text-muted-foreground flex items-center gap-2">
-                <GoogleCalendarSettings />
-                API key required
-              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowSettingsDialog(true)}
+              >
+                <Settings className="h-4 w-4 mr-1" />
+                Add Google Calendar API Key
+              </Button>
             )}
           </>
         )}
         
-        <GoogleCalendarSettings />
+        {/* Single settings button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setShowSettingsDialog(true)}
+        >
+          <Settings className="h-4 w-4" />
+          <span className="sr-only">Google Calendar Settings</span>
+        </Button>
         
         <Button
           variant="ghost"
@@ -259,6 +276,11 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
       <GoogleCalendarInstructions 
         open={showSetupDialog} 
         onOpenChange={setShowSetupDialog} 
+      />
+
+      <GoogleCalendarSettings 
+        open={showSettingsDialog}
+        onOpenChange={setShowSettingsDialog}
       />
     </div>
   );

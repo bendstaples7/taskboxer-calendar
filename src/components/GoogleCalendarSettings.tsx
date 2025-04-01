@@ -8,18 +8,23 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogClose,
   DialogFooter
 } from '@/components/ui/dialog';
-import { Settings } from 'lucide-react';
 import { useGoogleCalendarService } from '@/services/googleCalendarService';
 
-const GoogleCalendarSettings: React.FC = () => {
+interface GoogleCalendarSettingsProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const GoogleCalendarSettings: React.FC<GoogleCalendarSettingsProps> = ({
+  open,
+  onOpenChange
+}) => {
   const googleCalendarService = useGoogleCalendarService();
   const [newApiKey, setNewApiKey] = useState('');
   const [newClientId, setNewClientId] = useState('');
-  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     // Initialize state from service when component mounts
@@ -29,17 +34,11 @@ const GoogleCalendarSettings: React.FC = () => {
 
   const handleSave = () => {
     googleCalendarService.setCredentials(newApiKey, newClientId);
-    setOpen(false);
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Settings className="h-4 w-4" />
-          <span className="sr-only">Google Calendar Settings</span>
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Google Calendar Settings</DialogTitle>
