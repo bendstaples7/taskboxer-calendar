@@ -1,5 +1,4 @@
 
-import { Task, CalendarEvent } from "@/lib/types";
 import { useGoogleCalendarAuth } from "./googleCalendarAuth";
 import { useGoogleCalendarEvents } from "./googleCalendarEvents";
 

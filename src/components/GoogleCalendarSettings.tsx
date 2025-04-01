@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,9 +17,15 @@ import { useGoogleCalendarService } from '@/services/googleCalendarService';
 
 const GoogleCalendarSettings: React.FC = () => {
   const googleCalendarService = useGoogleCalendarService();
-  const [newApiKey, setNewApiKey] = useState(googleCalendarService.apiKey || '');
-  const [newClientId, setNewClientId] = useState(googleCalendarService.clientId || '');
+  const [newApiKey, setNewApiKey] = useState('');
+  const [newClientId, setNewClientId] = useState('');
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    // Initialize state from service when component mounts
+    setNewApiKey(googleCalendarService.apiKey || '');
+    setNewClientId(googleCalendarService.clientId || '');
+  }, [googleCalendarService.apiKey, googleCalendarService.clientId]);
 
   const handleSave = () => {
     googleCalendarService.setCredentials(newApiKey, newClientId);
