@@ -1,6 +1,6 @@
 
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export const useGoogleCalendarAuth = () => {
   const { toast } = useToast();
@@ -12,16 +12,39 @@ export const useGoogleCalendarAuth = () => {
     "621440005003-b6mlk5er35n4brfcnrp573jn8o33vj7e.apps.googleusercontent.com"
   );
   
+  // Subscribe to localStorage changes (in case settings are updated in another tab)
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === "googleCalendarApiKey") {
+        setApiKey(event.newValue);
+      } else if (event.key === "googleCalendarClientId") {
+        setClientId(event.newValue);
+      }
+    };
+    
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+  
   const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'];
   const SCOPES = 'https://www.googleapis.com/auth/calendar';
   
   const setCredentials = (newApiKey: string, newClientId?: string) => {
+    console.log("Setting new API key:", newApiKey);
     localStorage.setItem("googleCalendarApiKey", newApiKey);
     setApiKey(newApiKey);
     
     if (newClientId) {
       localStorage.setItem("googleCalendarClientId", newClientId);
       setClientId(newClientId);
+    }
+    
+    // Force reload the Google API if we're setting new credentials
+    if (window.gapi) {
+      console.log("Credentials updated, reinitializing Google API");
+      initializeGoogleApi().catch(err => {
+        console.error("Failed to reinitialize Google API after credentials update:", err);
+      });
     }
   };
   
@@ -40,7 +63,18 @@ export const useGoogleCalendarAuth = () => {
 
       if (!window.gapi) {
         console.error("Google API not loaded");
-        reject(new Error("Google API not loaded"));
+        // Load the Google API script
+        const script = document.createElement('script');
+        script.src = 'https://apis.google.com/js/api.js';
+        script.onload = () => {
+          console.log("Google API script loaded, proceeding with initialization");
+          initializeGoogleApi().then(resolve).catch(reject);
+        };
+        script.onerror = () => {
+          console.error("Failed to load Google API script");
+          reject(new Error("Failed to load Google API script"));
+        };
+        document.body.appendChild(script);
         return;
       }
       
@@ -57,7 +91,7 @@ export const useGoogleCalendarAuth = () => {
               ux_mode: 'popup',
             });
             
-            console.log("Google API client initialized");
+            console.log("Google API client initialized successfully");
             resolve(true);
           } catch (error) {
             console.error("Error initializing Google API client:", error);

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar, LogOut, AlertCircle, Settings } from 'lucide-react';
@@ -42,8 +41,10 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
           return;
         }
         
+        console.log("Initializing Google API with key:", googleCalendarService.apiKey);
         await googleCalendarService.initializeGoogleApi();
         const authenticated = googleCalendarService.isAuthenticated();
+        console.log("Is authenticated:", authenticated);
         setIsConnected(authenticated);
         
         if (authenticated) {
@@ -58,8 +59,11 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
     if (window.gapi) {
       checkConnection();
     } else {
-      // Script will be loaded by useGoogleCalendarSync
-      setIsConnected(false);
+      // Load the Google API script if it's not already loaded
+      const script = document.createElement('script');
+      script.src = 'https://apis.google.com/js/api.js';
+      script.onload = () => checkConnection();
+      document.body.appendChild(script);
     }
   }, [googleCalendarService.apiKey]);
   
@@ -232,15 +236,18 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
           </>
         )}
         
-        {/* Single settings button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setShowSettingsDialog(true)}
-        >
-          <Settings className="h-4 w-4" />
-          <span className="sr-only">Google Calendar Settings</span>
-        </Button>
+        {/* Settings button - only shown when API key exists */}
+        {googleCalendarService.apiKey && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowSettingsDialog(true)}
+            title="Google Calendar Settings"
+          >
+            <Settings className="h-4 w-4" />
+            <span className="sr-only">Google Calendar Settings</span>
+          </Button>
+        )}
         
         <Button
           variant="ghost"
