@@ -1,4 +1,3 @@
-
 import { useToast } from "@/hooks/use-toast";
 
 export const useGoogleCalendarAuth = () => {
@@ -7,7 +6,7 @@ export const useGoogleCalendarAuth = () => {
   // Define your Google API credentials
   // Using placeholder values - user should replace with their own valid credentials
   // from their Google Cloud Console
-  const API_KEY = '';  // Reset API key - was invalid
+  const API_KEY = 'AIzaSyAXCGg84ezwrLpRP-RH5dWX1nJ00hIhL24';
   const CLIENT_ID = '621440005003-b6mlk5er35n4brfcnrp573jn8o33vj7e.apps.googleusercontent.com';
   
   const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'];
