@@ -1,20 +1,43 @@
 
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export const useGoogleCalendarAuth = () => {
   const { toast } = useToast();
-  
-  // Define your Google API credentials
-  // Using placeholder values - user should replace with their own valid credentials
-  // from their Google Cloud Console
-  const API_KEY = 'AIzaSyAXCGg84ezwrLpRP-RH5dWX1nJ00hIhL24';
-  const CLIENT_ID = '621440005003-b6mlk5er35n4brfcnrp573jn8o33vj7e.apps.googleusercontent.com';
+  const [apiKey, setApiKey] = useState<string | null>(
+    localStorage.getItem("googleCalendarApiKey") || ""
+  );
+  const [clientId, setClientId] = useState<string | null>(
+    localStorage.getItem("googleCalendarClientId") || 
+    "621440005003-b6mlk5er35n4brfcnrp573jn8o33vj7e.apps.googleusercontent.com"
+  );
   
   const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'];
   const SCOPES = 'https://www.googleapis.com/auth/calendar';
   
+  const setCredentials = (newApiKey: string, newClientId?: string) => {
+    localStorage.setItem("googleCalendarApiKey", newApiKey);
+    setApiKey(newApiKey);
+    
+    if (newClientId) {
+      localStorage.setItem("googleCalendarClientId", newClientId);
+      setClientId(newClientId);
+    }
+  };
+  
   const initializeGoogleApi = async () => {
     return new Promise<boolean>((resolve, reject) => {
+      if (!apiKey) {
+        console.error("Google API key not provided");
+        toast({
+          title: "API Key Required",
+          description: "Please enter your Google Calendar API key in settings",
+          variant: "destructive",
+        });
+        reject(new Error("Google API key not provided"));
+        return;
+      }
+
       if (!window.gapi) {
         console.error("Google API not loaded");
         reject(new Error("Google API not loaded"));
@@ -27,8 +50,8 @@ export const useGoogleCalendarAuth = () => {
           try {
             console.log("Initializing Google API client...");
             await window.gapi.client.init({
-              apiKey: API_KEY,
-              clientId: CLIENT_ID,
+              apiKey: apiKey,
+              clientId: clientId,
               discoveryDocs: DISCOVERY_DOCS,
               scope: SCOPES,
               ux_mode: 'popup',
@@ -119,6 +142,9 @@ export const useGoogleCalendarAuth = () => {
     initializeGoogleApi,
     isAuthenticated,
     signIn,
-    signOut
+    signOut,
+    setCredentials,
+    apiKey,
+    clientId
   };
 };

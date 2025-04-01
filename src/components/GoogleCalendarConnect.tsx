@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar, LogOut, AlertCircle } from 'lucide-react';
 import { useGoogleCalendarService } from '@/services/googleCalendarService';
 import { useToast } from '@/hooks/use-toast';
 import GoogleCalendarInstructions from './GoogleCalendarInstructions';
+import GoogleCalendarSettings from './GoogleCalendarSettings';
 
 interface GoogleCalendarConnectProps {
   onEventsLoaded: (events: any[]) => void;
@@ -34,6 +34,12 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
   useEffect(() => {
     const checkConnection = async () => {
       try {
+        // Only proceed if we have an API key
+        if (!googleCalendarService.apiKey) {
+          console.log("No API key provided, skipping Google Calendar initialization");
+          return;
+        }
+        
         await googleCalendarService.initializeGoogleApi();
         const authenticated = googleCalendarService.isAuthenticated();
         setIsConnected(authenticated);
@@ -53,7 +59,7 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
       // Script will be loaded by useGoogleCalendarSync
       setIsConnected(false);
     }
-  }, []);
+  }, [googleCalendarService.apiKey]);
   
   const handleConnect = async () => {
     setIsLoading(true);
@@ -194,19 +200,30 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
             )}
           </Button>
         ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleConnect}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              "Connecting..."
+          <>
+            {googleCalendarService.apiKey ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleConnect}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  "Connecting..."
+                ) : (
+                  "Connect Google Calendar"
+                )}
+              </Button>
             ) : (
-              "Connect Google Calendar"
+              <div className="text-sm text-muted-foreground flex items-center gap-2">
+                <GoogleCalendarSettings />
+                API key required
+              </div>
             )}
-          </Button>
+          </>
         )}
+        
+        <GoogleCalendarSettings />
         
         <Button
           variant="ghost"
