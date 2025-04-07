@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Calendar, LogOut, AlertCircle } from 'lucide-react';
+import { Calendar, LogOut, AlertCircle, Settings } from 'lucide-react';
 import { useGoogleCalendarService } from '@/services/googleCalendarService';
 import { useToast } from '@/hooks/use-toast';
 import GoogleCalendarInstructions from './GoogleCalendarInstructions';
+import GoogleCalendarSettings from './GoogleCalendarSettings';
 
 interface GoogleCalendarConnectProps {
   onEventsLoaded: (events: any[]) => void;
@@ -17,6 +17,7 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
   const [isConnected, setIsConnected] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [showSetupDialog, setShowSetupDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const googleCalendarService = useGoogleCalendarService();
@@ -34,8 +35,16 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
   useEffect(() => {
     const checkConnection = async () => {
       try {
+        // Only proceed if we have an API key
+        if (!googleCalendarService.apiKey) {
+          console.log("No API key provided, skipping Google Calendar initialization");
+          return;
+        }
+        
+        console.log("Initializing Google API with key:", googleCalendarService.apiKey);
         await googleCalendarService.initializeGoogleApi();
         const authenticated = googleCalendarService.isAuthenticated();
+        console.log("Is authenticated:", authenticated);
         setIsConnected(authenticated);
         
         if (authenticated) {
@@ -50,10 +59,13 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
     if (window.gapi) {
       checkConnection();
     } else {
-      // Script will be loaded by useGoogleCalendarSync
-      setIsConnected(false);
+      // Load the Google API script if it's not already loaded
+      const script = document.createElement('script');
+      script.src = 'https://apis.google.com/js/api.js';
+      script.onload = () => checkConnection();
+      document.body.appendChild(script);
     }
-  }, []);
+  }, [googleCalendarService.apiKey]);
   
   const handleConnect = async () => {
     setIsLoading(true);
@@ -194,17 +206,46 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
             )}
           </Button>
         ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleConnect}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              "Connecting..."
+          <>
+            {googleCalendarService.apiKey ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleConnect}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  "Connecting..."
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    Connect Google Calendar
+                  </span>
+                )}
+              </Button>
             ) : (
-              "Connect Google Calendar"
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowSettingsDialog(true)}
+              >
+                <Settings className="h-4 w-4 mr-1" />
+                Add Google Calendar API Key
+              </Button>
             )}
+          </>
+        )}
+        
+        {/* Settings button - only shown when API key exists */}
+        {googleCalendarService.apiKey && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowSettingsDialog(true)}
+            title="Google Calendar Settings"
+          >
+            <Settings className="h-4 w-4" />
+            <span className="sr-only">Google Calendar Settings</span>
           </Button>
         )}
         
@@ -242,6 +283,11 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({
       <GoogleCalendarInstructions 
         open={showSetupDialog} 
         onOpenChange={setShowSetupDialog} 
+      />
+
+      <GoogleCalendarSettings 
+        open={showSettingsDialog}
+        onOpenChange={setShowSettingsDialog}
       />
     </div>
   );
