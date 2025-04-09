@@ -1,69 +1,61 @@
-# Welcome to your Lovable project
+# Shinko 🧠📅
 
-## Project info
+**Shinko** is a modern productivity calendar that combines week-view scheduling with an intelligent task board, built for focus and speed. Designed to mirror the look and feel of Google Calendar, Shinko helps you visually plan your day and automatically syncs with Google Calendar. It's perfect for task-first users who still rely on their calendar to stay organized.
 
-**URL**: https://lovable.dev/projects/53fc8d92-f90d-497e-8f6b-7ed094fd0d72
+---
 
-## How can I edit this code?
+## 🔗 Project Links
 
-There are several ways of editing your application.
+- **Live App**: [https://shinko.vercel.app](https://shinko.vercel.app)
+- **GitHub**: [https://github.com/bendstaples7/shinko](https://github.com/bendstaples7/shinko)
+- **Lovable Project Dashboard**: [https://lovable.dev/projects/53fc8d92-f90d-497e-8f6b-7ed094fd0d72](https://lovable.dev/projects/53fc8d92-f90d-497e-8f6b-7ed094fd0d72)
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/53fc8d92-f90d-497e-8f6b-7ed094fd0d72) and start prompting.
+## 🧠 Key Features
 
-Changes made via Lovable will be committed automatically to this repo.
+- 🧭 **Google Calendar Sync** – Bi-directional integration with Google Calendar via OAuth.
+- 🗂️ **Stacked Task Board** – Priority-based vertical layout: Critical, High, Medium, Low.
+- 🧱 **Week View Calendar** – Custom-built 7-column layout styled like Google Calendar, with hour-by-hour scroll support (24h layout, default scroll to 6am).
+- 🎯 **Drag & Drop Tasks** – Rearrange and re-prioritize tasks easily.
+- ⏱️ **Live Timers** – Track time with visual indicators and timer states.
+- 📁 **Animated Panels** – Toggle between calendar and task board view with collapsible panes.
+- 🔔 **Toast Feedback** – Built-in toast messages for user feedback.
+- 🎨 **Modern UI** – Built using `shadcn/ui` and `Tailwind CSS`.
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## ⚙️ Tech Stack
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- [Vite](https://vitejs.dev/) – Fast dev server & bundler  
+- [React](https://reactjs.org/) – Frontend UI  
+- [TypeScript](https://www.typescriptlang.org/) – Typed JavaScript  
+- [Tailwind CSS](https://tailwindcss.com/) – Utility-first CSS framework  
+- [shadcn/ui](https://ui.shadcn.com/) – Component system built on Radix UI  
+- [React Query](https://tanstack.com/query/latest) – Data fetching and caching  
+- [Lucide Icons](https://lucide.dev/) – Icon set  
+- [date-fns](https://date-fns.org/) – Date manipulation  
+- [Google Calendar API](https://developers.google.com/calendar) – Calendar sync  
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## 🚀 Getting Started
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Prerequisites
 
-# Step 3: Install the necessary dependencies.
-npm i
+- Node.js and npm – [Install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### Local Development
+
+```bash
+# Clone the repo
+git clone https://github.com/bendstaples7/shinko.git
+cd shinko
+
+# Install dependencies
+npm install
+
+# Start local server
 npm run dev
-```
 
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/53fc8d92-f90d-497e-8f6b-7ed094fd0d72) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+# App will be available at http://localhost:8080
