@@ -8,34 +8,36 @@
 
 - **Live App**: [https://shinko.vercel.app](https://shinko.vercel.app)
 - **GitHub**: [https://github.com/bendstaples7/shinko](https://github.com/bendstaples7/shinko)
-- **Lovable Project Dashboard**: [https://lovable.dev/projects/53fc8d92-f90d-497e-8f6b-7ed094fd0d72](https://lovable.dev/projects/53fc8d92-f90d-497e-8f6b-7ed094fd0d72)
+- **Lovable Dashboard**: [https://lovable.dev/projects/53fc8d92-f90d-497e-8f6b-7ed094fd0d72](https://lovable.dev/projects/53fc8d92-f90d-497e-8f6b-7ed094fd0d72)
 
 ---
 
 ## 🧠 Key Features
 
-- 🧭 **Google Calendar Sync** – Bi-directional integration with Google Calendar via OAuth.
-- 🗂️ **Stacked Task Board** – Priority-based vertical layout: Critical, High, Medium, Low.
-- 🧱 **Week View Calendar** – Custom-built 7-column layout styled like Google Calendar, with hour-by-hour scroll support (24h layout, default scroll to 6am).
-- 🎯 **Drag & Drop Tasks** – Rearrange and re-prioritize tasks easily.
-- ⏱️ **Live Timers** – Track time with visual indicators and timer states.
-- 📁 **Animated Panels** – Toggle between calendar and task board view with collapsible panes.
-- 🔔 **Toast Feedback** – Built-in toast messages for user feedback.
-- 🎨 **Modern UI** – Built using `shadcn/ui` and `Tailwind CSS`.
+- 🧭 **Google Calendar Sync** – OAuth integration using `@react-oauth/google`, supports fetching events from Google Calendar and displaying them in the calendar view.
+- 🗂️ **Stacked Task Board** – Priority-based vertical layout (Critical, High, Medium, Low) to help users visually manage their to-dos.
+- 📆 **Week View Calendar** – 7-column grid layout, styled like Google Calendar, showing 24-hour vertical time slots. Scroll support is enabled with default scroll to 6AM.
+- ⌛ **All-Day Events** – Google Calendar all-day events are automatically pinned to the top of each day in the calendar.
+- 🔄 **Real-Time Event Filtering** – Only events from the current week (Sunday to Saturday) are shown in the calendar.
+- 📦 **Drag-and-Drop Tasks** – Rearranging tasks is supported through a drag-and-drop UI.
+- 🧱 **Animated Panels** – Toggle between calendar and task board with collapsible side-by-side panels.
+- ⚠️ **Toast Alerts** – Built-in toast system for success, error, and informative messages.
+- 💅 **Modern Aesthetic** – Powered by `shadcn/ui`, `Tailwind CSS`, and custom component layout.
 
 ---
 
 ## ⚙️ Tech Stack
 
-- [Vite](https://vitejs.dev/) – Fast dev server & bundler  
-- [React](https://reactjs.org/) – Frontend UI  
-- [TypeScript](https://www.typescriptlang.org/) – Typed JavaScript  
-- [Tailwind CSS](https://tailwindcss.com/) – Utility-first CSS framework  
-- [shadcn/ui](https://ui.shadcn.com/) – Component system built on Radix UI  
-- [React Query](https://tanstack.com/query/latest) – Data fetching and caching  
-- [Lucide Icons](https://lucide.dev/) – Icon set  
-- [date-fns](https://date-fns.org/) – Date manipulation  
-- [Google Calendar API](https://developers.google.com/calendar) – Calendar sync  
+- [Vite](https://vitejs.dev/) – Lightning-fast bundler and dev server  
+- [React](https://reactjs.org/) – UI framework  
+- [TypeScript](https://www.typescriptlang.org/) – Strongly typed JS  
+- [Tailwind CSS](https://tailwindcss.com/) – Utility-first CSS  
+- [shadcn/ui](https://ui.shadcn.com/) – Modern component library  
+- [React Query](https://tanstack.com/query/latest) – For remote state/data fetching  
+- [Lucide Icons](https://lucide.dev/) – Clean iconography  
+- [date-fns](https://date-fns.org/) – Date and time utilities  
+- [Google Calendar API](https://developers.google.com/calendar) – Calendar integration  
+- [@react-oauth/google](https://www.npmjs.com/package/@react-oauth/google) – For OAuth authentication
 
 ---
 
@@ -43,19 +45,20 @@
 
 ### Prerequisites
 
-- Node.js and npm – [Install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- Node.js + npm (use [nvm](https://github.com/nvm-sh/nvm#installing-and-updating) to install)
 
 ### Local Development
 
 ```bash
-# Clone the repo
+# Clone the repository
 git clone https://github.com/bendstaples7/shinko.git
 cd shinko
 
 # Install dependencies
 npm install
 
-# Start local server
+# Start the development server
 npm run dev
 
-# App will be available at http://localhost:8080
+# Open in browser
+http://localhost:8080
