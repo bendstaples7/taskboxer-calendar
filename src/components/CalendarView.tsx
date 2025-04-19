@@ -1,8 +1,7 @@
 import React, { useMemo, useRef, useEffect } from "react";
-import { format, startOfWeek, addDays, getHours, getMinutes, differenceInMinutes } from "date-fns";
+import { format, startOfWeek, addDays, getHours, getMinutes, differenceInMinutes, isSameDay } from "date-fns";
 import { Task, CalendarEvent } from "@/lib/types";
 import CalendarItem from "./calendar/CalendarItem";
-import { isSameDay } from "date-fns";
 
 interface CalendarViewProps {
   events: CalendarEvent[];
@@ -10,6 +9,7 @@ interface CalendarViewProps {
   onDateChange?: (date: Date) => void;
   scrollToCurrentTime?: boolean;
   minimized?: boolean;
+  singleDayMode?: boolean;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -21,16 +21,41 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onDateChange,
   scrollToCurrentTime,
   minimized,
+  singleDayMode = false,
 }) => {
   const startOfThisWeek = useMemo(() => startOfWeek(new Date(), { weekStartsOn: 0 }), []);
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(startOfThisWeek, i)), [startOfThisWeek]);
 
+  // Debugging log to check what events are being passed
+  useEffect(() => {
+    console.log("Calendar View - Received events:", events);
+    console.log("Calendar View - Received tasks:", tasks);
+  }, [events, tasks]);
+
   const getEventsForDay = (day: Date) => {
-    return events.filter((event) => event.start && isSameDay(new Date(event.start), day));
+    return events.filter((event) => {
+      if (!event.start) {
+        console.warn("Event missing start date:", event);
+        return false;
+      }
+      
+      const eventDate = new Date(event.start);
+      const isSame = isSameDay(eventDate, day);
+      
+      // For debugging
+      if (isSame) {
+        console.log(`Found event for ${format(day, 'yyyy-MM-dd')}:`, event);
+      }
+      
+      return isSame;
+    });
   };
 
   const getTasksForDay = (day: Date) => {
-    return tasks.filter((task) => task.scheduled && task.scheduled.start && isSameDay(new Date(task.scheduled.start), day));
+    return tasks.filter((task) => {
+      if (!task.scheduled || !task.scheduled.start) return false;
+      return isSameDay(new Date(task.scheduled.start), day);
+    });
   };
 
   const getTopOffset = (date: Date) => {
@@ -48,7 +73,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   useEffect(() => {
     if (scrollToCurrentTime && scrollRef.current) {
-      scrollRef.current.scrollTop = 6 * HOUR_HEIGHT; // Scroll to 6 AM
+      const now = new Date();
+      const currentHour = now.getHours();
+      // Scroll to 1 hour before current time or 6 AM, whichever is later
+      const scrollHour = Math.max(currentHour - 1, 6);
+      scrollRef.current.scrollTop = scrollHour * HOUR_HEIGHT;
     }
   }, [scrollToCurrentTime]);
 
@@ -98,7 +127,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         <div className="grid grid-cols-7 w-full relative" style={{ height: HOURS.length * HOUR_HEIGHT }}>
           {days.map((day, dayIndex) => (
             <div key={dayIndex} className="relative border-r border-gray-200">
-              <div className="sticky top-0 z-10 bg-white border-b px-2 py-1 text-sm font-medium">
+              <div 
+                className="sticky top-0 z-10 bg-white border-b px-2 py-1 text-sm font-medium"
+                onClick={() => onDateChange && onDateChange(day)}
+              >
                 {format(day, "EEE, MMM d")}
               </div>
 
@@ -109,45 +141,64 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 ></div>
               ))}
 
-              {getEventsForDay(day).map((event, index) => (
-                <div
-                  key={event.id}
-                  className="absolute left-1 right-1 px-1"
-                  style={{
-                    top: getTopOffset(new Date(event.start)),
-                    height: getHeight(new Date(event.start), new Date(event.end)),
-                  }}
-                >
-                  <CalendarItem
-                    item={event}
-                    isTask={false}
-                    index={index}
-                    totalItems={1}
-                    resizingTaskId={null}
-                    isResizing={false}
-                  />
-                </div>
-              ))}
+              {getEventsForDay(day).map((event, index) => {
+                if (!event.start || !event.end) {
+                  console.warn("Event missing start or end date:", event);
+                  return null;
+                }
+                
+                return (
+                  <div
+                    key={`event-${event.id}`}
+                    className="absolute left-1 right-1 px-1"
+                    style={{
+                      top: getTopOffset(new Date(event.start)),
+                      height: getHeight(
+                        new Date(event.start),
+                        new Date(event.end)
+                      ),
+                    }}
+                  >
+                    <CalendarItem
+                      item={event}
+                      isTask={false}
+                      index={index}
+                      totalItems={1}
+                      resizingTaskId={null}
+                      isResizing={false}
+                    />
+                  </div>
+                );
+              })}
 
-              {getTasksForDay(day).map((task, index) => (
-                <div
-                  key={task.id}
-                  className="absolute left-1 right-1 px-1"
-                  style={{
-                    top: getTopOffset(new Date(task.scheduled!.start)),
-                    height: getHeight(new Date(task.scheduled!.start), new Date(task.scheduled!.end)),
-                  }}
-                >
-                  <CalendarItem
-                    item={task}
-                    isTask={true}
-                    index={index}
-                    totalItems={1}
-                    resizingTaskId={null}
-                    isResizing={false}
-                  />
-                </div>
-              ))}
+              {getTasksForDay(day).map((task, index) => {
+                if (!task.scheduled || !task.scheduled.start || !task.scheduled.end) {
+                  return null;
+                }
+                
+                return (
+                  <div
+                    key={`task-${task.id}`}
+                    className="absolute left-1 right-1 px-1"
+                    style={{
+                      top: getTopOffset(new Date(task.scheduled.start)),
+                      height: getHeight(
+                        new Date(task.scheduled.start),
+                        new Date(task.scheduled.end)
+                      ),
+                    }}
+                  >
+                    <CalendarItem
+                      item={task}
+                      isTask={true}
+                      index={index}
+                      totalItems={1}
+                      resizingTaskId={null}
+                      isResizing={false}
+                    />
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
