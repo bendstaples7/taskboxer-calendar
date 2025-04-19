@@ -1,5 +1,13 @@
 import React, { useMemo, useRef, useEffect } from "react";
-import { format, startOfWeek, addDays, getHours, getMinutes, differenceInMinutes, isSameDay } from "date-fns";
+import {
+  format,
+  startOfWeek,
+  addDays,
+  getHours,
+  getMinutes,
+  differenceInMinutes,
+  isSameDay
+} from "date-fns";
 import { Task, CalendarEvent } from "@/lib/types";
 import CalendarItem from "./calendar/CalendarItem";
 
@@ -7,18 +15,20 @@ interface CalendarViewProps {
   events: CalendarEvent[];
   tasks: Task[];
   onDateChange?: (date: Date) => void;
+  onEventClick?: (event: CalendarEvent) => void; // ✅ added
   scrollToCurrentTime?: boolean;
   minimized?: boolean;
   singleDayMode?: boolean;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const HOUR_HEIGHT = 60; // 1 hour = 60px
+const HOUR_HEIGHT = 60;
 
 const CalendarView: React.FC<CalendarViewProps> = ({
   events,
   tasks,
   onDateChange,
+  onEventClick, // ✅ added
   scrollToCurrentTime,
   minimized,
   singleDayMode = false,
@@ -26,7 +36,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const startOfThisWeek = useMemo(() => startOfWeek(new Date(), { weekStartsOn: 0 }), []);
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(startOfThisWeek, i)), [startOfThisWeek]);
 
-  // Debugging log to check what events are being passed
   useEffect(() => {
     console.log("Calendar View - Received events:", events);
     console.log("Calendar View - Received tasks:", tasks);
@@ -38,16 +47,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         console.warn("Event missing start date:", event);
         return false;
       }
-      
       const eventDate = new Date(event.start);
-      const isSame = isSameDay(eventDate, day);
-      
-      // For debugging
-      if (isSame) {
-        console.log(`Found event for ${format(day, 'yyyy-MM-dd')}:`, event);
-      }
-      
-      return isSame;
+      return isSameDay(eventDate, day);
     });
   };
 
@@ -74,9 +75,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   useEffect(() => {
     if (scrollToCurrentTime && scrollRef.current) {
       const now = new Date();
-      const currentHour = now.getHours();
-      // Scroll to 1 hour before current time or 6 AM, whichever is later
-      const scrollHour = Math.max(currentHour - 1, 6);
+      const scrollHour = Math.max(now.getHours() - 1, 6);
       scrollRef.current.scrollTop = scrollHour * HOUR_HEIGHT;
     }
   }, [scrollToCurrentTime]);
@@ -87,12 +86,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         timeRef.current.scrollTop = scrollRef.current.scrollTop;
       }
     };
-
     const scrollContainer = scrollRef.current;
     if (scrollContainer) {
       scrollContainer.addEventListener("scroll", handleScroll);
     }
-
     return () => {
       if (scrollContainer) {
         scrollContainer.removeEventListener("scroll", handleScroll);
@@ -103,10 +100,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   return (
     <div className="flex h-full overflow-hidden">
       <div className="sticky left-0 top-0 z-10 bg-white text-xs text-gray-500 border-r">
-        <div
-          className="flex flex-col"
-          style={{ height: HOURS.length * HOUR_HEIGHT }}
-        >
+        <div className="flex flex-col" style={{ height: HOURS.length * HOUR_HEIGHT }}>
           <div className="overflow-hidden" style={{ height: "100%" }}>
             <div ref={timeRef} className="flex flex-col">
               {HOURS.map((hour) => (
@@ -127,9 +121,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         <div className="grid grid-cols-7 w-full relative" style={{ height: HOURS.length * HOUR_HEIGHT }}>
           {days.map((day, dayIndex) => (
             <div key={dayIndex} className="relative border-r border-gray-200">
-              <div 
+              <div
                 className="sticky top-0 z-10 bg-white border-b px-2 py-1 text-sm font-medium"
-                onClick={() => onDateChange && onDateChange(day)}
+                onClick={() => onDateChange?.(day)}
               >
                 {format(day, "EEE, MMM d")}
               </div>
@@ -142,22 +136,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               ))}
 
               {getEventsForDay(day).map((event, index) => {
-                if (!event.start || !event.end) {
-                  console.warn("Event missing start or end date:", event);
-                  return null;
-                }
-                
+                if (!event.start || !event.end) return null;
                 return (
                   <div
                     key={`event-${event.id}`}
                     className="absolute left-1 right-1 px-1"
                     style={{
                       top: getTopOffset(new Date(event.start)),
-                      height: getHeight(
-                        new Date(event.start),
-                        new Date(event.end)
-                      ),
+                      height: getHeight(new Date(event.start), new Date(event.end)),
                     }}
+                    onClick={() => onEventClick?.(event)} // ✅ add click support
                   >
                     <CalendarItem
                       item={event}
@@ -172,20 +160,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               })}
 
               {getTasksForDay(day).map((task, index) => {
-                if (!task.scheduled || !task.scheduled.start || !task.scheduled.end) {
-                  return null;
-                }
-                
+                if (!task.scheduled?.start || !task.scheduled?.end) return null;
                 return (
                   <div
                     key={`task-${task.id}`}
                     className="absolute left-1 right-1 px-1"
                     style={{
                       top: getTopOffset(new Date(task.scheduled.start)),
-                      height: getHeight(
-                        new Date(task.scheduled.start),
-                        new Date(task.scheduled.end)
-                      ),
+                      height: getHeight(new Date(task.scheduled.start), new Date(task.scheduled.end)),
                     }}
                   >
                     <CalendarItem

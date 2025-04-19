@@ -11,6 +11,7 @@ import TaskDetails from "@/components/TaskDetails";
 import ActiveTasksDropdown from "@/components/ActiveTasksDropdown";
 import GoogleCalendarConnect from "@/components/GoogleCalendarConnect";
 import { useGoogleCalendarSync } from "@/hooks/useGoogleCalendarSync";
+import EventDetailsDialog from "@/components/EventDetailsDialog";
 import { Plus, Calendar as CalendarIcon, LayoutList } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { addMinutes, startOfWeek, endOfWeek } from "date-fns";
@@ -36,6 +37,9 @@ const Index = () => {
   const [viewMode, setViewMode] = useState<'calendar' | 'taskboard'>('calendar');
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [showEventDialog, setShowEventDialog] = useState(false);
 
   const { toast } = useToast();
   const [lastToastTimestamp, setLastToastTimestamp] = useState<number>(0);
@@ -71,26 +75,15 @@ const Index = () => {
   };
 
   const handleGoogleCalendarEvents = (googleEvents: CalendarEvent[]) => {
-    // Filter out any existing Google Calendar events
     const nonGoogleEvents = events.filter(event => !event.isGoogleEvent);
-    
-    console.log("Received Google Calendar events:", googleEvents);
-    console.log("Existing non-Google events:", nonGoogleEvents);
-    console.log("Combined events:", [...nonGoogleEvents, ...googleEvents]);
-    
-    // Combine non-Google events with the new Google events
     setEvents([...nonGoogleEvents, ...googleEvents]);
   };
 
   const handleCalendarDateChange = (date: Date) => {
     setSelectedDate(date);
-    
     if (isInitialized) {
-      // Calculate the start and end of the week for the selected date
       const weekStart = startOfWeek(date, { weekStartsOn: 0 });
       const weekEnd = endOfWeek(date, { weekStartsOn: 0 });
-      
-      console.log("Loading events for week:", weekStart, "to", weekEnd);
       loadEvents(date);
     }
   };
@@ -101,6 +94,11 @@ const Index = () => {
         ? prev.filter(s => s !== section)
         : [...prev, section]
     );
+  };
+
+  const handleEventClick = (event: CalendarEvent) => {
+    setSelectedEvent(event);
+    setShowEventDialog(true);
   };
 
   return (
@@ -164,6 +162,7 @@ const Index = () => {
               onDateChange={handleCalendarDateChange}
               scrollToCurrentTime
               minimized={!calendarExpanded}
+              onEventClick={handleEventClick}
             />
           </AnimatedPanel>
           <AnimatedPanel
@@ -189,6 +188,12 @@ const Index = () => {
           </AnimatedPanel>
         </div>
       </main>
+
+      <EventDetailsDialog
+        event={selectedEvent}
+        open={showEventDialog}
+        onClose={() => setShowEventDialog(false)}
+      />
     </div>
   );
 };
