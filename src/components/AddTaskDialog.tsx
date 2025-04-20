@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,7 @@ interface AddTaskDialogProps {
   open: boolean;
   initialPriority?: Priority;
   onOpenChange: (open: boolean) => void;
-  onAddTask: (task: Task) => void;
+  onCreate: (task: Task) => void;
   availableLabels: TaskLabel[];
   onAddLabel: (label: TaskLabel) => void;
   initialDuration?: number;
@@ -25,7 +24,7 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
   open,
   initialPriority = 'medium',
   onOpenChange,
-  onAddTask,
+  onCreate,
   availableLabels,
   onAddLabel,
   initialDuration
@@ -40,7 +39,6 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
   const [newLabelColor, setNewLabelColor] = useState("#3B82F6");
   const [showLabelForm, setShowLabelForm] = useState(false);
 
-  // Set initial duration if provided
   useEffect(() => {
     if (initialDuration) {
       const hours = Math.floor(initialDuration / 60);
@@ -50,7 +48,6 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
     }
   }, [initialDuration]);
 
-  // Reset priority when initialPriority changes
   useEffect(() => {
     setPriority(initialPriority);
   }, [initialPriority]);
@@ -71,7 +68,7 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
     if (!title.trim()) return;
 
     const totalMinutes = estimatedHours * 60 + estimatedMinutes;
-    
+
     const newTask: Task = {
       id: uuidv4(),
       title,
@@ -82,7 +79,7 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
       labels: availableLabels.filter(label => selectedLabels.includes(label.id))
     };
 
-    onAddTask(newTask);
+    onCreate(newTask);
     resetForm();
     onOpenChange(false);
   };
@@ -95,8 +92,8 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
   };
 
   const toggleLabel = (labelId: string) => {
-    setSelectedLabels(prev => 
-      prev.includes(labelId) 
+    setSelectedLabels(prev =>
+      prev.includes(labelId)
         ? prev.filter(id => id !== labelId)
         : [...prev, labelId]
     );
@@ -150,8 +147,8 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
           </div>
           <div className="grid gap-2">
             <Label>Priority</Label>
-            <RadioGroup 
-              value={priority} 
+            <RadioGroup
+              value={priority}
               onValueChange={(value) => setPriority(value as Priority)}
               className="flex"
             >
@@ -208,7 +205,7 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
               {availableLabels.map((label) => (
                 <Badge
                   key={label.id}
-                  style={{ 
+                  style={{
                     backgroundColor: selectedLabels.includes(label.id) ? label.color : 'transparent',
                     color: selectedLabels.includes(label.id) ? 'white' : 'inherit',
                     border: `1px solid ${label.color}`
@@ -223,7 +220,7 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
                 </Badge>
               ))}
             </div>
-            
+
             {showLabelForm ? (
               <div className="grid gap-2 border p-2 rounded-md">
                 <div className="flex gap-2">
@@ -240,17 +237,17 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
                   />
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     size="sm"
                     onClick={() => setShowLabelForm(false)}
                   >
                     <X className="h-4 w-4 mr-1" />
                     Cancel
                   </Button>
-                  <Button 
-                    type="button" 
+                  <Button
+                    type="button"
                     size="sm"
                     onClick={handleAddLabel}
                   >

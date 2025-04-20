@@ -62,21 +62,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   const getEventsForDay = (day: Date) =>
     events.filter((event) => {
-      if (!event.start || !event.end) return false;
+      if (!event?.start || !event?.end) return false;
       const start = new Date(event.start);
-      const end = new Date(event.end);
       return isSameDay(start, day) && !isAllDayEvent(event);
     });
 
   const getAllDayEventsForDay = (day: Date) =>
     events.filter((event) => {
-      if (!event.start || !event.end) return false;
+      if (!event?.start || !event?.end) return false;
       return isSameDay(new Date(event.start), day) && isAllDayEvent(event);
     });
 
   const getTasksForDay = (day: Date) =>
     tasks.filter((task) => {
-      if (!task.scheduled?.start) return false;
+      if (!task?.scheduled?.start) return false;
       return isSameDay(new Date(task.scheduled.start), day);
     });
 
@@ -168,6 +167,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               ))}
 
               {getEventsForDay(day).map((event, i) => {
+                if (!event?.start || !event?.end) return null;
                 const start = new Date(event.start);
                 const end = new Date(event.end);
                 return (
@@ -193,6 +193,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               })}
 
               {getTasksForDay(day).map((task, i) => {
+                if (!task?.scheduled?.start || !task?.scheduled?.end) return null;
                 const start = new Date(task.scheduled.start);
                 const end = new Date(task.scheduled.end);
                 return (

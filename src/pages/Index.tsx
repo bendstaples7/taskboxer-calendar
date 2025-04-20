@@ -13,8 +13,6 @@ import GoogleCalendarConnect from "@/components/GoogleCalendarConnect";
 import { useGoogleCalendarSync } from "@/hooks/useGoogleCalendarSync";
 import EventDetailsDialog from "@/components/EventDetailsDialog";
 import { Plus, Calendar as CalendarIcon, LayoutList } from "lucide-react";
-import { v4 as uuidv4 } from "uuid";
-import { addMinutes, startOfWeek, endOfWeek } from "date-fns";
 import {
   fetchTasks,
   createTask,
@@ -103,9 +101,26 @@ const Index = () => {
   };
 
   const handleCreateTask = async (task: Task) => {
-    const created = await createTask(task);
-    setTasks(prev => [...prev, created]);
-    showToast("Task created", task.title);
+    try {
+      const created = await createTask(task);
+
+      // Ensure minimum required fields are present
+      const safeTask: Task = {
+        ...created,
+        scheduled: created.scheduled ?? null,
+        position: created.position ?? 0,
+        labels: created.labels ?? [],
+        estimatedTime: created.estimatedTime ?? 30,
+        completed: created.completed ?? false,
+        priority: created.priority ?? 'medium',
+      };
+
+      setTasks(prev => [...prev, safeTask]);
+      showToast("Task created", task.title);
+    } catch (err) {
+      console.error("Error creating task:", err);
+      showToast("Error", "Failed to create task", "destructive");
+    }
   };
 
   return (
@@ -169,7 +184,7 @@ const Index = () => {
               onDateChange={handleCalendarDateChange}
               scrollToCurrentTime
               minimized={!calendarExpanded}
-              singleDayMode={taskboardExpanded} // 👈 This is the important new prop
+              singleDayMode={taskboardExpanded}
               onEventClick={handleEventClick}
             />
           </AnimatedPanel>
@@ -185,7 +200,14 @@ const Index = () => {
             }}
           >
             {taskboardExpanded ? (
-              <TaskBoard tasks={tasks} />
+              <TaskBoard
+                tasks={tasks}
+                onTaskClick={() => {}}
+                onAddTask={(priority: Priority) => {
+                  setDefaultPriority(priority);
+                  setShowAddDialog(true);
+                }}
+              />
             ) : (
               <StackedTaskBoard
                 tasks={tasks}
