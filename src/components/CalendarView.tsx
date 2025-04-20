@@ -6,7 +6,8 @@ import {
   getHours,
   getMinutes,
   differenceInMinutes,
-  isSameDay
+  isSameDay,
+  isSameMinute,
 } from "date-fns";
 import { Task, CalendarEvent } from "@/lib/types";
 import CalendarItem from "./calendar/CalendarItem";
@@ -46,19 +47,35 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     }
   }, [scrollToCurrentTime]);
 
-  const getEventsForDay = (day: Date) => {
-    return events.filter((event) => {
-      if (!event.start) return false;
-      return isSameDay(new Date(event.start), day);
+  const getEventsForDay = (day: Date) =>
+    events.filter((event) => {
+      if (!event.start || !event.end) return false;
+      const start = new Date(event.start);
+      const end = new Date(event.end);
+      return isSameDay(start, day) && !isAllDayEvent(event);
     });
+
+  const getAllDayEventsForDay = (day: Date) =>
+    events.filter((event) => {
+      if (!event.start || !event.end) return false;
+      return isSameDay(new Date(event.start), day) && isAllDayEvent(event);
+    });
+
+  const isAllDayEvent = (event: CalendarEvent) => {
+    const start = new Date(event.start);
+    const end = new Date(event.end);
+    return (
+      start.getHours() === 0 &&
+      start.getMinutes() === 0 &&
+      isSameMinute(end, new Date(start.getFullYear(), start.getMonth(), start.getDate(), 23, 59))
+    );
   };
 
-  const getTasksForDay = (day: Date) => {
-    return tasks.filter((task) => {
+  const getTasksForDay = (day: Date) =>
+    tasks.filter((task) => {
       if (!task.scheduled?.start) return false;
       return isSameDay(new Date(task.scheduled.start), day);
     });
-  };
 
   const getTopOffset = (date: Date) => {
     const hour = getHours(date);
@@ -71,72 +88,78 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   return (
-    <div ref={scrollRef} className="flex h-full overflow-auto">
-      <div className="w-[60px] flex-shrink-0 text-xs text-gray-500 border-r bg-white">
-        <div className="flex flex-col" style={{ height: HOURS.length * HOUR_HEIGHT }}>
-          {HOURS.map((hour) => (
-            <div
-              key={hour}
-              className="h-[60px] px-1 text-right leading-[60px] border-b border-gray-200"
-            >
-              {hour % 12 === 0 ? 12 : hour % 12}
-              {hour < 12 ? "am" : "pm"}
+    <div className="flex flex-col h-full w-full overflow-hidden">
+      {/* Sticky all-day bar with padding to mimic scrollbar */}
+      <div className="flex w-full sticky top-0 z-30 bg-white border-b pr-[16px]">
+        <div className="w-[60px] flex-shrink-0 bg-gray-50 border-r text-xs text-center py-2 font-medium">
+          All-day
+        </div>
+        <div className="flex-1 grid grid-cols-7">
+          {days.map((day, index) => (
+            <div key={index} className="border-r px-1 h-[48px]">
+              {getAllDayEventsForDay(day).map((event) => (
+                <div
+                  key={`allday-${event.id}`}
+                  className="bg-green-300 text-xs text-black rounded px-1 py-0.5 border border-green-500 truncate cursor-pointer"
+                  onClick={() => onEventClick?.(event)}
+                >
+                  {event.title}
+                </div>
+              ))}
             </div>
           ))}
         </div>
       </div>
 
-      <div className="flex-1">
-        <div
-          className="grid grid-cols-7 w-full relative"
-          style={{ height: HOURS.length * HOUR_HEIGHT }}
-        >
-          {days.map((day, dayIndex) => (
-            <div key={dayIndex} className="relative border-r border-gray-200">
+      {/* Scrollable body */}
+      <div className="flex w-full h-full overflow-auto" ref={scrollRef}>
+        {/* Time column */}
+        <div className="w-[60px] flex-shrink-0 text-xs text-gray-500 border-r bg-white">
+          <div className="flex flex-col" style={{ height: HOURS.length * HOUR_HEIGHT }}>
+            {HOURS.map((hour) => (
               <div
-                className="sticky top-0 z-10 bg-white border-b px-2 py-1 text-sm font-medium"
+                key={hour}
+                className="h-[60px] px-1 text-right leading-[60px] border-b border-gray-200"
+              >
+                {hour % 12 === 0 ? 12 : hour % 12}
+                {hour < 12 ? "am" : "pm"}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Day columns */}
+        <div className="grid grid-cols-7 w-full relative" style={{ height: HOURS.length * HOUR_HEIGHT }}>
+          {days.map((day, index) => (
+            <div key={index} className="relative border-r border-gray-200">
+              <div
+                className="sticky top-0 z-20 bg-white border-b px-2 py-1 text-sm font-medium"
                 onClick={() => onDateChange?.(day)}
               >
                 {format(day, "EEE, MMM d")}
               </div>
 
               {HOURS.map((hour) => (
-                <div
-                  key={hour}
-                  className="h-[60px] border-b border-gray-100"
-                ></div>
+                <div key={hour} className="h-[60px] border-b border-gray-100" />
               ))}
 
-              {getEventsForDay(day).map((event, index) => {
-                if (!event.start || !event.end) return null;
-
+              {getEventsForDay(day).map((event, i) => {
                 const start = new Date(event.start);
                 const end = new Date(event.end);
-                const top = getTopOffset(start);
-                const height = getHeight(start, end);
-
-                console.log("📐 Rendering event:", {
-                  title: event.title,
-                  start: event.start,
-                  end: event.end,
-                  top,
-                  height
-                });
-
                 return (
                   <div
                     key={`event-${event.id}`}
                     className="absolute left-1 right-1 px-1"
                     style={{
-                      top,
-                      height
+                      top: getTopOffset(start),
+                      height: getHeight(start, end),
                     }}
                     onClick={() => onEventClick?.(event)}
                   >
                     <CalendarItem
                       item={event}
                       isTask={false}
-                      index={index}
+                      index={i}
                       totalItems={1}
                       resizingTaskId={null}
                       isResizing={false}
@@ -145,27 +168,22 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 );
               })}
 
-              {getTasksForDay(day).map((task, index) => {
-                if (!task.scheduled?.start || !task.scheduled?.end) return null;
-
+              {getTasksForDay(day).map((task, i) => {
                 const start = new Date(task.scheduled.start);
                 const end = new Date(task.scheduled.end);
-                const top = getTopOffset(start);
-                const height = getHeight(start, end);
-
                 return (
                   <div
                     key={`task-${task.id}`}
                     className="absolute left-1 right-1 px-1"
                     style={{
-                      top,
-                      height
+                      top: getTopOffset(start),
+                      height: getHeight(start, end),
                     }}
                   >
                     <CalendarItem
                       item={task}
                       isTask={true}
-                      index={index}
+                      index={i}
                       totalItems={1}
                       resizingTaskId={null}
                       isResizing={false}
