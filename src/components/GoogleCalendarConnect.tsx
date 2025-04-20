@@ -8,6 +8,7 @@ interface GoogleCalendarConnectProps {
   onEventsLoaded?: (events: CalendarEvent[]) => void;
 }
 
+// Converts YYYY-MM-DD to Date object in local time
 const parseLocalDate = (dateStr: string) => {
   const [year, month, day] = dateStr.split('-').map(Number);
   return new Date(year, month - 1, day);
@@ -79,7 +80,8 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({ onEventsL
               endRaw: event.end?.dateTime || event.end?.date,
               parsedStart: start.toISOString(),
               parsedEnd: end?.toISOString(),
-              durationMinutes
+              durationMinutes,
+              colorId: event.colorId || null
             });
 
             return {
@@ -88,7 +90,8 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({ onEventsL
               start,
               end,
               isGoogleEvent: true,
-              googleEventId: event.id
+              googleEventId: event.id,
+              colorId: event.colorId || null
             };
           });
 

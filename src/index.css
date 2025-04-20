@@ -44,13 +44,11 @@ body,
 
     --radius: 0.5rem;
 
-    /* Priority colors */
     --priority-low: 210 100% 60%;
     --priority-medium: 45 100% 60%;
     --priority-high: 30 100% 60%;
     --priority-critical: 0 100% 60%;
 
-    /* Calendar colors */
     --calendar-task: 220 14% 70%;
     --calendar-event: 120 100% 40%;
     --sidebar-background: 0 0% 98%;
@@ -212,15 +210,35 @@ body,
 }
 
 .app-logo {
-  height: 40px !important;
-  width: auto !important;
-  object-fit: contain !important;
-  margin-right: 0.5rem !important;
+  height: 2.5rem;
+  width: auto;
+  object-fit: contain;
+  margin-right: 0.5rem;
 }
 
-/* ✅ Google Calendar Blue */
-.google-calendar-blue {
-  background-color: #039BE5;
-  border-color: #0288D1;
-  color: white;
+/* ✅ Dynamic Google Calendar Colors */
+.google-color-1,
+.google-color-2,
+.google-color-3,
+.google-color-4,
+.google-color-5,
+.google-color-6,
+.google-color-7,
+.google-color-8,
+.google-color-9,
+.google-color-10,
+.google-color-11 {
+  @apply rounded px-2 py-1 text-xs border shadow-sm cursor-pointer overflow-hidden;
 }
+
+.google-color-1 { background-color: #7986cb; color: white; border-color: #7986cb; }
+.google-color-2 { background-color: #33b679; color: white; border-color: #33b679; }
+.google-color-3 { background-color: #8e24aa; color: white; border-color: #8e24aa; }
+.google-color-4 { background-color: #e67c73; color: white; border-color: #e67c73; }
+.google-color-5 { background-color: #f6c026; color: black; border-color: #f6c026; }
+.google-color-6 { background-color: #f4511e; color: white; border-color: #f4511e; }
+.google-color-7 { background-color: #039be5; color: white; border-color: #039be5; }
+.google-color-8 { background-color: #616161; color: white; border-color: #616161; }
+.google-color-9 { background-color: #3f51b5; color: white; border-color: #3f51b5; }
+.google-color-10 { background-color: #0b8043; color: white; border-color: #0b8043; }
+.google-color-11 { background-color: #d60000; color: white; border-color: #d60000; }
