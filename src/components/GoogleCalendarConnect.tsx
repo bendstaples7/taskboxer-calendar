@@ -8,6 +8,19 @@ interface GoogleCalendarConnectProps {
   onEventsLoaded?: (events: CalendarEvent[]) => void;
 }
 
+// Converts UTC ISO strings to local Date objects
+const toLocalDate = (isoString: string) => {
+  const utcDate = new Date(isoString);
+  return new Date(
+    utcDate.getUTCFullYear(),
+    utcDate.getUTCMonth(),
+    utcDate.getUTCDate(),
+    utcDate.getUTCHours(),
+    utcDate.getUTCMinutes(),
+    utcDate.getUTCSeconds()
+  );
+};
+
 const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({ onEventsLoaded }) => {
   const { toast } = useToast();
 
@@ -21,16 +34,14 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({ onEventsL
       console.log("✅ Google Calendar Access Token:", accessToken);
 
       try {
-        // Get current date and set timeMin to start of week and timeMax to end of week
         const now = new Date();
         const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
+        startOfWeek.setDate(now.getDate() - now.getDay());
         startOfWeek.setHours(0, 0, 0, 0);
-        
+
         const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 7); // Next Sunday
-        
-        // Add timeMin and timeMax parameters to get events for current week
+        endOfWeek.setDate(startOfWeek.getDate() + 7);
+
         const res = await fetch(
           `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfWeek.toISOString()}&timeMax=${endOfWeek.toISOString()}&singleEvents=true&orderBy=startTime`,
           {
@@ -47,20 +58,19 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({ onEventsL
 
         const data = await res.json();
         const events = data.items || [];
-        
-        // Convert to CalendarEvent format
+
         const calendarEvents: CalendarEvent[] = events
           .filter((event: any) => event.start?.dateTime || event.start?.date)
           .map((event: any) => {
-            const start = event.start.dateTime ? new Date(event.start.dateTime) : new Date(event.start.date);
-            // For all-day events that use date instead of dateTime, set end to end of day
+            const start = event.start.dateTime
+              ? toLocalDate(event.start.dateTime)
+              : new Date(event.start.date);
+
             let end;
             if (event.end.dateTime) {
-              end = new Date(event.end.dateTime);
+              end = toLocalDate(event.end.dateTime);
             } else if (event.end.date) {
               end = new Date(event.end.date);
-              // For all-day events, Google sets end date to the day after
-              // We'll adjust to show it ending at the end of the actual day
               end.setDate(end.getDate() - 1);
               end.setHours(23, 59, 59);
             }
