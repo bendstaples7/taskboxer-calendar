@@ -1,5 +1,12 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+
+/* Prevent outer scrollbars */
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
 
 @tailwind base;
 @tailwind components;
@@ -42,7 +49,7 @@
     --priority-medium: 45 100% 60%;
     --priority-high: 30 100% 60%;
     --priority-critical: 0 100% 60%;
-    
+
     /* Calendar colors */
     --calendar-task: 220 14% 70%;
     --calendar-event: 120 100% 40%;
@@ -78,14 +85,12 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
-    
-    /* Priority colors */
+
     --priority-low: 210 100% 50%;
     --priority-medium: 45 100% 50%;
     --priority-high: 30 100% 50%;
     --priority-critical: 0 100% 50%;
-    
-    /* Calendar colors */
+
     --calendar-task: 220 14% 50%;
     --calendar-event: 120 100% 35%;
   }
@@ -138,22 +143,18 @@
   @apply bg-gray-100 transition-colors duration-200;
 }
 
-/* Panel transitions */
 .panel-slide-in {
   @apply transition-all duration-300 ease-in-out;
 }
 
-/* Handle styles */
 .panel-handle:hover {
   @apply bg-gray-100;
 }
 
-/* Smooth scrolling */
 .smooth-scroll {
   scroll-behavior: smooth;
 }
 
-/* Drag and drop visual cues */
 .calendar-drop-indicator {
   @apply absolute bg-gray-400 h-0.5 w-full z-20 rounded;
   box-shadow: 0 0 4px rgba(100, 100, 100, 0.7);
@@ -168,7 +169,6 @@
   box-shadow: 0 0 4px rgba(100, 100, 100, 0.7);
 }
 
-/* Task running animation */
 @keyframes pulse-border {
   0% {
     box-shadow: 0 0 0 0 rgba(100, 100, 100, 0.7);
@@ -185,7 +185,6 @@
   animation: pulse-border 2s infinite;
 }
 
-/* Japanese aesthetic styles */
 .jp-pattern {
   background-color: #f9f7f5;
   background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23d2ccc6' fill-opacity='0.3' fill-rule='evenodd'%3E%3Cpath d='M0 20L20 0v20H0z'/%3E%3Cpath d='M20 40V20h20v20H20z'/%3E%3C/g%3E%3C/svg%3E");
@@ -195,17 +194,14 @@
   background: linear-gradient(135deg, #eaeaea 0%, #a0a0a0 100%);
 }
 
-/* Task board drop indicators */
 .task-drop-zone {
   @apply absolute w-full border-t-2 border-gray-500 transition-opacity duration-200 z-10;
 }
 
-/* Calendar multi-task layout */
 .split-calendar-task {
   @apply absolute rounded-md overflow-hidden;
 }
 
-/* Editable fields hover effects */
 .editable-field {
   @apply relative;
 }
@@ -215,10 +211,16 @@
   @apply absolute inset-0 bg-gray-100 opacity-10 rounded transition-opacity;
 }
 
-/* Make the logo larger */
 .app-logo {
   height: 40px !important;
   width: auto !important;
   object-fit: contain !important;
   margin-right: 0.5rem !important;
+}
+
+/* ✅ Google Calendar Blue */
+.google-calendar-blue {
+  background-color: #039BE5;
+  border-color: #0288D1;
+  color: white;
 }
