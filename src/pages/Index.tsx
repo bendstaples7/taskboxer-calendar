@@ -41,6 +41,9 @@ const Index = () => {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventDialog, setShowEventDialog] = useState(false);
 
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [defaultPriority, setDefaultPriority] = useState<Priority>('medium');
+
   const { toast } = useToast();
   const [lastToastTimestamp, setLastToastTimestamp] = useState<number>(0);
   const [lastToastMessage, setLastToastMessage] = useState<string>('');
@@ -99,6 +102,12 @@ const Index = () => {
   const handleEventClick = (event: CalendarEvent) => {
     setSelectedEvent(event);
     setShowEventDialog(true);
+  };
+
+  const handleCreateTask = async (task: Task) => {
+    const created = await createTask(task);
+    setTasks(prev => [...prev, created]);
+    showToast("Task created", task.title);
   };
 
   return (
@@ -183,6 +192,10 @@ const Index = () => {
                 collapsedSections={collapsedSections}
                 onToggleSection={handleToggleSection}
                 onTaskClick={() => {}}
+                onAddTask={(priority: Priority) => {
+                  setDefaultPriority(priority);
+                  setShowAddDialog(true);
+                }}
               />
             )}
           </AnimatedPanel>
@@ -193,6 +206,17 @@ const Index = () => {
         event={selectedEvent}
         open={showEventDialog}
         onClose={() => setShowEventDialog(false)}
+      />
+
+      <AddTaskDialog
+        open={showAddDialog}
+        onOpenChange={setShowAddDialog}
+        onClose={() => setShowAddDialog(false)}
+        onCreate={handleCreateTask}
+        defaultPriority={defaultPriority}
+        labels={labels}
+        availableLabels={labels}
+        defaultEstimate={30}
       />
     </div>
   );
