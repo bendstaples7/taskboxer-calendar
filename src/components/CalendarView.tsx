@@ -29,6 +29,7 @@ interface CalendarViewProps {
 
 const MINUTES = Array.from({ length: 1440 }, (_, i) => i);
 const MINUTE_HEIGHT = 1;
+const TOTAL_SCROLLABLE_HEIGHT = 1440; // Only the scrollable portion
 
 const CalendarView: React.FC<CalendarViewProps> = ({
   events,
@@ -55,25 +56,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     }
   }, [scrollToCurrentTime]);
 
-  const getEventsForDay = (day: Date) =>
-    events.filter((event) => {
-      if (!event?.start || !event?.end) return false;
-      const start = new Date(event.start);
-      return isSameDay(start, day) && !isAllDayEvent(event);
-    });
-
-  const getAllDayEventsForDay = (day: Date) =>
-    events.filter((event) => {
-      if (!event?.start || !event?.end) return false;
-      return isSameDay(new Date(event.start), day) && isAllDayEvent(event);
-    });
-
-  const getTasksForDay = (day: Date) =>
-    tasks.filter((task) => {
-      if (!task?.scheduled?.start) return false;
-      return isSameDay(new Date(task.scheduled.start), day);
-    });
-
   const isAllDayEvent = (event: CalendarEvent) => {
     const start = new Date(event.start);
     const end = new Date(event.end);
@@ -92,13 +74,22 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     return Math.max(differenceInMinutes(end, start), 1) * MINUTE_HEIGHT;
   };
 
+  const getEventsForDay = (day: Date) =>
+    events.filter(event => event.start && event.end && isSameDay(new Date(event.start), day) && !isAllDayEvent(event));
+
+  const getAllDayEventsForDay = (day: Date) =>
+    events.filter(event => event.start && event.end && isSameDay(new Date(event.start), day) && isAllDayEvent(event));
+
+  const getTasksForDay = (day: Date) =>
+    tasks.filter(task => task.scheduled?.start && isSameDay(new Date(task.scheduled.start), day));
+
   const now = new Date();
-  const currentDayIndex = days.findIndex((d) => isSameDay(d, now));
+  const currentDayIndex = days.findIndex(d => isSameDay(d, now));
   const currentTopOffset = getTopOffset(now);
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
-      {/* Date Header */}
+      {/* Header row */}
       <div className="flex w-full sticky top-0 z-30 bg-white border-b pr-[16px]">
         <div className="w-[60px] flex-shrink-0 bg-gray-50 border-r border-gray-200" />
         <div className={`flex-1 grid ${singleDayMode ? "grid-cols-1" : "grid-cols-7"}`}>
@@ -116,7 +107,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
-      {/* All-day Row */}
+      {/* All-day row */}
       <div className="flex w-full sticky top-[40px] z-20 bg-white border-b pr-[16px]">
         <div className="w-[60px] flex-shrink-0 bg-gray-50 border-r text-xs text-center py-2 font-medium border-b border-gray-200">
           All-day
@@ -124,7 +115,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         <div className={`flex-1 grid ${singleDayMode ? "grid-cols-1" : "grid-cols-7"}`}>
           {days.map((day, index) => (
             <div key={index} className="border-r px-1 h-[48px]">
-              {getAllDayEventsForDay(day).map((event) => (
+              {getAllDayEventsForDay(day).map(event => (
                 <div
                   key={`allday-${event.id}`}
                   className="bg-green-300 text-xs text-black rounded px-1 py-0.5 border border-green-500 truncate cursor-pointer"
@@ -138,10 +129,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
-      {/* Time Grid */}
+      {/* Scrollable time grid */}
       <div className="flex w-full h-full overflow-auto relative" ref={scrollRef}>
-        <div className="w-[60px] flex-shrink-0 text-xs text-gray-500 bg-white border-r border-gray-200 pt-[40px]">
-          <div className="flex flex-col">
+        {/* Time column */}
+        <div className="w-[60px] flex-shrink-0 text-xs text-gray-500 bg-white border-r border-gray-200">
+          <div className="flex flex-col" style={{ height: TOTAL_SCROLLABLE_HEIGHT }}>
             {Array.from({ length: 24 }, (_, hour) => (
               <div
                 key={hour}
@@ -154,11 +146,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
         </div>
 
-        <div className="absolute left-[60px] top-0 w-px bg-gray-200" style={{ height: MINUTES.length * MINUTE_HEIGHT + 40 }} />
+        {/* FIXED divider line now lives inside scroll area */}
+        <div className="absolute left-[60px] top-[88px] w-px bg-gray-300" style={{ height: TOTAL_SCROLLABLE_HEIGHT }} />
 
+        {/* Main grid */}
         <div
           className={`grid ${singleDayMode ? "grid-cols-1" : "grid-cols-7"} w-full relative`}
-          style={{ height: MINUTES.length * MINUTE_HEIGHT + 40 }}
+          style={{ height: TOTAL_SCROLLABLE_HEIGHT }}
         >
           {days.map((day, dayIndex) => (
             <div key={dayIndex} className="relative border-r border-gray-200">
@@ -166,17 +160,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 const hour = Math.floor(minute / 60);
                 const minuteOfHour = minute % 60;
                 const dropStart = setMinutes(setHours(day, hour), minuteOfHour);
-
                 const isHourLine = minuteOfHour === 0;
 
                 const [{ isOver, canDrop }, drop] = useDrop({
                   accept: "TASK",
-                  drop: (item: { task: Task }) => {
-                    if (onTaskDrop) {
-                      onTaskDrop(item.task, dropStart);
-                    }
-                  },
-                  collect: (monitor) => ({
+                  drop: (item: { task: Task }) => onTaskDrop?.(item.task, dropStart),
+                  collect: monitor => ({
                     isOver: monitor.isOver({ shallow: true }),
                     canDrop: monitor.canDrop(),
                   }),
@@ -196,7 +185,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               })}
 
               {getEventsForDay(day).map((event, i) => {
-                if (!event?.start || !event?.end) return null;
                 const start = new Date(event.start);
                 const end = new Date(event.end);
                 return (
@@ -222,7 +210,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               })}
 
               {getTasksForDay(day).map((task, i) => {
-                if (!task?.scheduled?.start || !task?.scheduled?.end) return null;
                 const start = new Date(task.scheduled.start);
                 const end = new Date(task.scheduled.end);
                 return (
