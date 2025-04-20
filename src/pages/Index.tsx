@@ -102,9 +102,9 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-stone-50">
+    <div className="min-h-screen h-screen flex flex-col bg-stone-50 overflow-hidden">
       <header className="p-4 bg-white border-b shadow-sm">
-        <div className="container mx-auto flex justify-between items-center">
+        <div className="w-full max-w-screen-xl mx-auto flex justify-between items-center px-4">
           <div className="flex items-center gap-4">
             <h1 className="text-2xl font-bold flex items-center font-['Noto_Sans_JP',_sans-serif]">
               <img src="/lovable-uploads/f43f9967-69ed-4047-bfc3-f619d50d3d40.png" alt="Shinko Logo" className="app-logo h-12 w-auto" />
@@ -144,8 +144,8 @@ const Index = () => {
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto p-4">
-        <div className="flex gap-4 h-[calc(100vh-10rem)]">
+      <main className="flex-1 p-4 overflow-hidden h-full">
+        <div className="flex gap-4 h-full overflow-hidden">
           <AnimatedPanel
             title="Calendar"
             side="left"

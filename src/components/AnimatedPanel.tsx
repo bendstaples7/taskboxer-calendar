@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
@@ -57,7 +56,7 @@ const AnimatedPanel: React.FC<AnimatedPanelProps> = ({
           </button>
         )}
       </div>
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-auto">
         {children}
       </div>
     </div>

@@ -1,14 +1,14 @@
 import React from "react";
 import { Task, CalendarEvent } from "@/lib/types";
+import classNames from "classnames";
 
 interface CalendarItemProps {
-  item: CalendarEvent | Task;
+  item: Task | CalendarEvent;
   isTask: boolean;
   index: number;
   totalItems: number;
   resizingTaskId: string | null;
   isResizing: boolean;
-  onClick?: () => void;
 }
 
 const CalendarItem: React.FC<CalendarItemProps> = ({
@@ -18,16 +18,23 @@ const CalendarItem: React.FC<CalendarItemProps> = ({
   totalItems,
   resizingTaskId,
   isResizing,
-  onClick,
 }) => {
+  const isGoogle = !isTask && "isGoogleEvent" in item && item.isGoogleEvent;
+
   return (
     <div
-      className={`rounded px-2 py-1 text-sm shadow-md cursor-pointer ${
-        isTask ? "calendar-task" : "calendar-event"
-      }`}
-      onClick={onClick}
+      className={classNames(
+        "h-full rounded px-2 py-1 text-xs overflow-hidden cursor-pointer border shadow-sm",
+        {
+          "google-calendar-blue": isGoogle,
+          "calendar-event": !isTask && !isGoogle,
+          "calendar-task": isTask,
+        }
+      )}
     >
-      {item.title}
+      <div className="font-semibold truncate text-white">
+        {item.title}
+      </div>
     </div>
   );
 };

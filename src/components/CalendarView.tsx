@@ -109,13 +109,27 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
               {getEventsForDay(day).map((event, index) => {
                 if (!event.start || !event.end) return null;
+
+                const start = new Date(event.start);
+                const end = new Date(event.end);
+                const top = getTopOffset(start);
+                const height = getHeight(start, end);
+
+                console.log("📐 Rendering event:", {
+                  title: event.title,
+                  start: event.start,
+                  end: event.end,
+                  top,
+                  height
+                });
+
                 return (
                   <div
                     key={`event-${event.id}`}
                     className="absolute left-1 right-1 px-1"
                     style={{
-                      top: getTopOffset(new Date(event.start)),
-                      height: getHeight(new Date(event.start), new Date(event.end)),
+                      top,
+                      height
                     }}
                     onClick={() => onEventClick?.(event)}
                   >
@@ -133,13 +147,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
               {getTasksForDay(day).map((task, index) => {
                 if (!task.scheduled?.start || !task.scheduled?.end) return null;
+
+                const start = new Date(task.scheduled.start);
+                const end = new Date(task.scheduled.end);
+                const top = getTopOffset(start);
+                const height = getHeight(start, end);
+
                 return (
                   <div
                     key={`task-${task.id}`}
                     className="absolute left-1 right-1 px-1"
                     style={{
-                      top: getTopOffset(new Date(task.scheduled.start)),
-                      height: getHeight(new Date(task.scheduled.start), new Date(task.scheduled.end)),
+                      top,
+                      height
                     }}
                   >
                     <CalendarItem

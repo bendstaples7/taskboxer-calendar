@@ -59,13 +59,28 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({ onEventsL
               : parseLocalDate(event.start.date);
 
             let end;
-            if (event.end.dateTime) {
+            if (event.end?.dateTime) {
               end = new Date(event.end.dateTime);
-            } else if (event.end.date) {
+            } else if (event.end?.date) {
               end = parseLocalDate(event.end.date);
               end.setDate(end.getDate() - 1);
               end.setHours(23, 59, 59);
             }
+
+            if (!end || isNaN(end.getTime())) {
+              end = new Date(start.getTime() + 60 * 60 * 1000); // fallback to 1 hour
+            }
+
+            const durationMinutes = end ? Math.round((end.getTime() - start.getTime()) / 60000) : null;
+
+            console.log("📅 Event parsed:", {
+              title: event.summary,
+              startRaw: event.start.dateTime || event.start.date,
+              endRaw: event.end?.dateTime || event.end?.date,
+              parsedStart: start.toISOString(),
+              parsedEnd: end?.toISOString(),
+              durationMinutes
+            });
 
             return {
               id: event.id,
@@ -76,8 +91,6 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({ onEventsL
               googleEventId: event.id
             };
           });
-
-        console.log("Formatted Calendar Events:", calendarEvents);
 
         if (onEventsLoaded) {
           onEventsLoaded(calendarEvents);
