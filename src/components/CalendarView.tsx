@@ -29,7 +29,7 @@ interface CalendarViewProps {
 
 const MINUTES = Array.from({ length: 1440 }, (_, i) => i);
 const MINUTE_HEIGHT = 1;
-const TOTAL_SCROLLABLE_HEIGHT = 1440; // Only the scrollable portion
+const TOTAL_SCROLLABLE_HEIGHT = 1440;
 
 const CalendarView: React.FC<CalendarViewProps> = ({
   events,
@@ -146,7 +146,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
         </div>
 
-        {/* FIXED divider line now lives inside scroll area */}
+        {/* Divider line inside scroll area */}
         <div className="absolute left-[60px] top-[88px] w-px bg-gray-300" style={{ height: TOTAL_SCROLLABLE_HEIGHT }} />
 
         {/* Main grid */}
@@ -163,9 +163,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 const isHourLine = minuteOfHour === 0;
 
                 const [{ isOver, canDrop }, drop] = useDrop({
-                  accept: "TASK",
-                  drop: (item: { task: Task }) => onTaskDrop?.(item.task, dropStart),
-                  collect: monitor => ({
+                  accept: ["TASK", "CALENDAR_TASK"],
+                  drop: (item: any) => {
+                    if (item?.task && onTaskDrop) {
+                      onTaskDrop(item.task, dropStart);
+                    }
+                  },
+                  collect: (monitor) => ({
                     isOver: monitor.isOver({ shallow: true }),
                     canDrop: monitor.canDrop(),
                   }),

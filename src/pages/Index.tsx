@@ -10,18 +10,16 @@ import AddTaskDialog from "@/components/AddTaskDialog";
 import TaskDetails from "@/components/TaskDetails";
 import ActiveTasksDropdown from "@/components/ActiveTasksDropdown";
 import GoogleCalendarConnect from "@/components/GoogleCalendarConnect";
-import { useGoogleCalendarSync } from "@/hooks/useGoogleCalendarSync";
 import EventDetailsDialog from "@/components/EventDetailsDialog";
-import { Plus, Calendar as CalendarIcon, LayoutList } from "lucide-react";
+import { useGoogleCalendarSync } from "@/hooks/useGoogleCalendarSync";
 import {
   fetchTasks,
   createTask,
   updateTask,
   deleteTask,
   fetchLabels,
-  createLabel,
-  updateTaskPositions
 } from "@/services/taskService";
+import { Plus, Calendar as CalendarIcon, LayoutList } from "lucide-react";
 
 document.title = "shinkō";
 
@@ -35,7 +33,6 @@ const Index = () => {
   const [viewMode, setViewMode] = useState<'calendar' | 'taskboard'>('calendar');
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventDialog, setShowEventDialog] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -127,17 +124,14 @@ const Index = () => {
       ...task,
       scheduled: {
         start: newStart.toISOString(),
-        end: newEnd.toISOString()
-      }
+        end: newEnd.toISOString(),
+      },
     };
 
     try {
       await updateTask(updatedTask);
-      setTasks(prev =>
-        prev.map(t => (t.id === task.id ? updatedTask : t))
-      );
-      console.log("✅ Scheduled Task:", updatedTask);
-      showToast("Task scheduled", `${task.title} at ${newStart.toLocaleTimeString()}`);
+      setTasks(prev => prev.map(t => (t.id === task.id ? updatedTask : t)));
+      showToast("Task scheduled", `${task.title} at ${newStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
     } catch (err) {
       console.error("Failed to schedule task:", err);
       showToast("Error", "Could not schedule task", "destructive");
@@ -203,11 +197,11 @@ const Index = () => {
               events={events}
               tasks={tasks}
               onDateChange={handleCalendarDateChange}
+              onEventClick={handleEventClick}
+              onTaskDrop={handleTaskDrop}
               scrollToCurrentTime
               minimized={!calendarExpanded}
               singleDayMode={taskboardExpanded}
-              onEventClick={handleEventClick}
-              onTaskDrop={handleTaskDrop}
             />
           </AnimatedPanel>
 
