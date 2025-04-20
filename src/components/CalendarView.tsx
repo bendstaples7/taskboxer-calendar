@@ -27,8 +27,8 @@ interface CalendarViewProps {
   singleDayMode?: boolean;
 }
 
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const HOUR_HEIGHT = 60;
+const MINUTES = Array.from({ length: 1440 }, (_, i) => i);
+const MINUTE_HEIGHT = 1;
 
 const CalendarView: React.FC<CalendarViewProps> = ({
   events,
@@ -50,8 +50,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   useEffect(() => {
     if (scrollToCurrentTime && scrollRef.current) {
       const now = new Date();
-      const scrollHour = Math.max(now.getHours() - 1, 6);
-      scrollRef.current.scrollTop = scrollHour * HOUR_HEIGHT;
+      const scrollMinute = Math.max(now.getHours() * 60 + now.getMinutes() - 60, 6 * 60);
+      scrollRef.current.scrollTop = scrollMinute * MINUTE_HEIGHT;
     }
   }, [scrollToCurrentTime]);
 
@@ -85,12 +85,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const getTopOffset = (date: Date) => {
-    const hour = getHours(date);
-    return hour * HOUR_HEIGHT;
+    return (date.getHours() * 60 + date.getMinutes()) * MINUTE_HEIGHT;
   };
 
   const getHeight = (start: Date, end: Date) => {
-    return Math.max(differenceInMinutes(end, start), 15) * (HOUR_HEIGHT / 60);
+    return Math.max(differenceInMinutes(end, start), 1) * MINUTE_HEIGHT;
   };
 
   const now = new Date();
@@ -141,10 +140,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
       {/* Time Grid */}
       <div className="flex w-full h-full overflow-auto relative" ref={scrollRef}>
-        {/* Time Column */}
         <div className="w-[60px] flex-shrink-0 text-xs text-gray-500 bg-white border-r border-gray-200 pt-[40px]">
           <div className="flex flex-col">
-            {HOURS.map((hour) => (
+            {Array.from({ length: 24 }, (_, hour) => (
               <div
                 key={hour}
                 className="h-[60px] border-b border-gray-200 flex items-center justify-end pr-1"
@@ -156,17 +154,22 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
         </div>
 
-        <div className="absolute left-[60px] top-0 w-px bg-gray-200" style={{ height: HOURS.length * HOUR_HEIGHT + 40 }} />
+        <div className="absolute left-[60px] top-0 w-px bg-gray-200" style={{ height: MINUTES.length * MINUTE_HEIGHT + 40 }} />
 
         <div
           className={`grid ${singleDayMode ? "grid-cols-1" : "grid-cols-7"} w-full relative`}
-          style={{ height: HOURS.length * HOUR_HEIGHT + 40 }}
+          style={{ height: MINUTES.length * MINUTE_HEIGHT + 40 }}
         >
           {days.map((day, dayIndex) => (
             <div key={dayIndex} className="relative border-r border-gray-200">
-              {HOURS.map((hour) => {
-                const dropStart = setMinutes(setHours(day, hour), 0);
-                const [{ isOver }, drop] = useDrop({
+              {MINUTES.map((minute) => {
+                const hour = Math.floor(minute / 60);
+                const minuteOfHour = minute % 60;
+                const dropStart = setMinutes(setHours(day, hour), minuteOfHour);
+
+                const isHourLine = minuteOfHour === 0;
+
+                const [{ isOver, canDrop }, drop] = useDrop({
                   accept: "TASK",
                   drop: (item: { task: Task }) => {
                     if (onTaskDrop) {
@@ -174,16 +177,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     }
                   },
                   collect: (monitor) => ({
-                    isOver: monitor.isOver(),
+                    isOver: monitor.isOver({ shallow: true }),
+                    canDrop: monitor.canDrop(),
                   }),
                 });
 
                 return (
                   <div
                     ref={drop}
-                    key={hour}
-                    className={`h-[60px] border-b border-gray-100 ${isOver ? "bg-gray-200" : ""}`}
-                  />
+                    key={minute}
+                    className={`h-[1px] ${isHourLine ? "border-b border-gray-200" : ""}`}
+                  >
+                    {isOver && canDrop && (
+                      <div className="h-2 -mt-1 w-full bg-blue-500 shadow-md rounded transition-all duration-75 opacity-80" />
+                    )}
+                  </div>
                 );
               })}
 

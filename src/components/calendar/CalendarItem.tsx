@@ -1,5 +1,6 @@
 import React from "react";
 import { Task, CalendarEvent } from "@/lib/types";
+import { CalendarIcon } from "lucide-react";
 import classNames from "classnames";
 
 interface CalendarItemProps {
@@ -22,25 +23,47 @@ const CalendarItem: React.FC<CalendarItemProps> = ({
   const isGoogleEvent = !isTask && "isGoogleEvent" in item && item.isGoogleEvent;
   const colorId = !isTask && "colorId" in item ? item.colorId : null;
 
-  const itemClass = classNames(
-    "h-full rounded px-2 py-1 text-xs overflow-hidden cursor-pointer border shadow-sm",
+  const wrapperClass = classNames(
+    "bg-white rounded-xl border border-gray-200 shadow-sm px-3 py-2 text-sm leading-tight w-full h-full overflow-hidden",
     {
-      [`google-color-${colorId}`]: isGoogleEvent && colorId,
-      "calendar-event": isGoogleEvent && !colorId,
+      "google-color": isGoogleEvent,
       "calendar-task": isTask,
+      "cursor-pointer": true,
     }
   );
 
-  const textColorClass = classNames({
-    "text-white": !colorId || colorId !== "8", // Google color 8 is light gray, needs dark text
-    "text-black": colorId === "8",
+  const textColor = classNames({
+    "text-gray-900": true,
   });
 
   return (
-    <div className={itemClass}>
-      <div className={classNames("font-semibold truncate", textColorClass)}>
+    <div className={wrapperClass}>
+      <div className="font-semibold truncate text-gray-900">
         {item.title}
       </div>
+
+      {item.start && item.end && (
+        <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+          <CalendarIcon className="w-4 h-4" />
+          <span>
+            {new Date(item.start).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+            {" - "}
+            {new Date(item.end).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+        </div>
+      )}
+
+      {"description" in item && item.description && (
+        <p className="text-gray-600 text-xs mt-1 line-clamp-2">
+          {item.description}
+        </p>
+      )}
     </div>
   );
 };
