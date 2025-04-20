@@ -8,6 +8,7 @@ import {
   differenceInMinutes,
   isSameDay,
   isSameMinute,
+  isToday,
 } from "date-fns";
 import { Task, CalendarEvent } from "@/lib/types";
 import CalendarItem from "./calendar/CalendarItem";
@@ -47,6 +48,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     }
   }, [scrollToCurrentTime]);
 
+  const isAllDayEvent = (event: CalendarEvent) => {
+    const start = new Date(event.start);
+    const end = new Date(event.end);
+    return (
+      start.getHours() === 0 &&
+      start.getMinutes() === 0 &&
+      isSameMinute(end, new Date(start.getFullYear(), start.getMonth(), start.getDate(), 23, 59))
+    );
+  };
+
   const getEventsForDay = (day: Date) =>
     events.filter((event) => {
       if (!event.start || !event.end) return false;
@@ -60,16 +71,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       if (!event.start || !event.end) return false;
       return isSameDay(new Date(event.start), day) && isAllDayEvent(event);
     });
-
-  const isAllDayEvent = (event: CalendarEvent) => {
-    const start = new Date(event.start);
-    const end = new Date(event.end);
-    return (
-      start.getHours() === 0 &&
-      start.getMinutes() === 0 &&
-      isSameMinute(end, new Date(start.getFullYear(), start.getMonth(), start.getDate(), 23, 59))
-    );
-  };
 
   const getTasksForDay = (day: Date) =>
     tasks.filter((task) => {
@@ -87,11 +88,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     return Math.max(differenceInMinutes(end, start), 15) * (HOUR_HEIGHT / 60);
   };
 
+  const now = new Date();
+  const currentDayIndex = days.findIndex((d) => isSameDay(d, now));
+  const currentTopOffset = getTopOffset(now);
+
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
-      {/* Sticky all-day header */}
       <div className="flex w-full sticky top-0 z-30 bg-white border-b pr-[16px]">
-        <div className="w-[60px] flex-shrink-0 bg-gray-50 border-r text-xs text-center py-2 font-medium">
+        <div className="w-[60px] flex-shrink-0 bg-gray-50 border-r text-xs text-center py-2 font-medium border-b border-gray-200">
           All-day
         </div>
         <div className="flex-1 grid grid-cols-7">
@@ -111,12 +115,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
-      {/* Scrollable calendar view */}
-      <div className="flex w-full h-full overflow-auto" ref={scrollRef}>
-        {/* Time column */}
-        <div className="w-[60px] flex-shrink-0 text-xs text-gray-500 border-r bg-white">
-          {/* Match spacing for date label */}
-          <div className="h-[40px] border-b border-white" />
+      <div className="flex w-full h-full overflow-auto relative" ref={scrollRef}>
+        <div className="w-[60px] flex-shrink-0 text-xs text-gray-500 bg-white border-r border-gray-200">
+          <div className="h-[40px] border-b border-gray-200" />
           <div className="flex flex-col">
             {HOURS.map((hour) => (
               <div
@@ -130,12 +131,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
         </div>
 
-        {/* Calendar columns */}
+        <div className="absolute left-[60px] top-0 w-px bg-gray-200" style={{ height: HOURS.length * HOUR_HEIGHT + 40 }} />
+
         <div className="grid grid-cols-7 w-full relative" style={{ height: HOURS.length * HOUR_HEIGHT + 40 }}>
           {days.map((day, index) => (
             <div key={index} className="relative border-r border-gray-200">
               <div
-                className="sticky top-0 z-20 bg-white border-b px-2 py-1 text-sm font-medium h-[40px]"
+                className={`sticky top-0 z-20 border-b px-2 py-1 text-sm font-medium h-[40px] ${isToday(day) ? 'bg-blue-100 text-blue-700' : 'bg-white'}`}
                 onClick={() => onDateChange?.(day)}
               >
                 {format(day, "EEE, MMM d")}
@@ -193,6 +195,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   </div>
                 );
               })}
+
+              {currentDayIndex === index && (
+                <div
+                  className="current-time-indicator"
+                  style={{ top: currentTopOffset + 40 }}
+                />
+              )}
             </div>
           ))}
         </div>
