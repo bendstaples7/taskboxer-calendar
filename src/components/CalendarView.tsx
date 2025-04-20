@@ -35,8 +35,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   minimized,
   singleDayMode = false,
 }) => {
-  const startOfThisWeek = useMemo(() => startOfWeek(new Date(), { weekStartsOn: 0 }), []);
-  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(startOfThisWeek, i)), [startOfThisWeek]);
+  const today = new Date();
+  const startOfThisWeek = useMemo(() => startOfWeek(today, { weekStartsOn: 0 }), []);
+  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(startOfThisWeek, i)), [startOfThisWeek]);
+  const days = singleDayMode ? [today] : weekDays;
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -94,11 +96,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
+      {/* All-day Header */}
       <div className="flex w-full sticky top-0 z-30 bg-white border-b pr-[16px]">
         <div className="w-[60px] flex-shrink-0 bg-gray-50 border-r text-xs text-center py-2 font-medium border-b border-gray-200">
           All-day
         </div>
-        <div className="flex-1 grid grid-cols-7">
+        <div className={`flex-1 grid ${singleDayMode ? "grid-cols-1" : "grid-cols-7"}`}>
           {days.map((day, index) => (
             <div key={index} className="border-r px-1 h-[48px]">
               {getAllDayEventsForDay(day).map((event) => (
@@ -115,6 +118,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
+      {/* Time Grid */}
       <div className="flex w-full h-full overflow-auto relative" ref={scrollRef}>
         <div className="w-[60px] flex-shrink-0 text-xs text-gray-500 bg-white border-r border-gray-200">
           <div className="h-[40px] border-b border-gray-200" />
@@ -131,9 +135,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
         </div>
 
+        {/* Vertical divider under date label */}
         <div className="absolute left-[60px] top-0 w-px bg-gray-200" style={{ height: HOURS.length * HOUR_HEIGHT + 40 }} />
 
-        <div className="grid grid-cols-7 w-full relative" style={{ height: HOURS.length * HOUR_HEIGHT + 40 }}>
+        {/* Day Columns */}
+        <div
+          className={`grid ${singleDayMode ? "grid-cols-1" : "grid-cols-7"} w-full relative`}
+          style={{ height: HOURS.length * HOUR_HEIGHT + 40 }}
+        >
           {days.map((day, index) => (
             <div key={index} className="relative border-r border-gray-200">
               <div

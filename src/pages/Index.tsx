@@ -85,8 +85,6 @@ const Index = () => {
   const handleCalendarDateChange = (date: Date) => {
     setSelectedDate(date);
     if (isInitialized) {
-      const weekStart = startOfWeek(date, { weekStartsOn: 0 });
-      const weekEnd = endOfWeek(date, { weekStartsOn: 0 });
       loadEvents(date);
     }
   };
@@ -171,9 +169,11 @@ const Index = () => {
               onDateChange={handleCalendarDateChange}
               scrollToCurrentTime
               minimized={!calendarExpanded}
+              singleDayMode={taskboardExpanded} // 👈 This is the important new prop
               onEventClick={handleEventClick}
             />
           </AnimatedPanel>
+
           <AnimatedPanel
             title="Task Board"
             side="right"
