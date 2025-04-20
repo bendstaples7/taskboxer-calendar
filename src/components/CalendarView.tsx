@@ -96,8 +96,26 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
-      {/* All-day Header */}
+      {/* Date Header */}
       <div className="flex w-full sticky top-0 z-30 bg-white border-b pr-[16px]">
+        <div className="w-[60px] flex-shrink-0 bg-gray-50 border-r border-gray-200" />
+        <div className={`flex-1 grid ${singleDayMode ? "grid-cols-1" : "grid-cols-7"}`}>
+          {days.map((day, index) => (
+            <div
+              key={index}
+              className={`h-[40px] border-r border-b px-2 py-1 text-sm font-medium cursor-pointer ${
+                isToday(day) ? "bg-blue-100 text-blue-700" : "bg-white"
+              }`}
+              onClick={() => onDateChange?.(day)}
+            >
+              {format(day, "EEE, MMM d")}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* All-day Row */}
+      <div className="flex w-full sticky top-[40px] z-20 bg-white border-b pr-[16px]">
         <div className="w-[60px] flex-shrink-0 bg-gray-50 border-r text-xs text-center py-2 font-medium border-b border-gray-200">
           All-day
         </div>
@@ -145,13 +163,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         >
           {days.map((day, index) => (
             <div key={index} className="relative border-r border-gray-200">
-              <div
-                className={`sticky top-0 z-20 border-b px-2 py-1 text-sm font-medium h-[40px] ${isToday(day) ? 'bg-blue-100 text-blue-700' : 'bg-white'}`}
-                onClick={() => onDateChange?.(day)}
-              >
-                {format(day, "EEE, MMM d")}
-              </div>
-
               {HOURS.map((hour) => (
                 <div key={hour} className="h-[60px] border-b border-gray-100" />
               ))}
