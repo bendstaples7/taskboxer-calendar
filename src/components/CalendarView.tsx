@@ -89,7 +89,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
-      {/* Sticky all-day bar with padding to mimic scrollbar */}
+      {/* Sticky all-day header */}
       <div className="flex w-full sticky top-0 z-30 bg-white border-b pr-[16px]">
         <div className="w-[60px] flex-shrink-0 bg-gray-50 border-r text-xs text-center py-2 font-medium">
           All-day
@@ -111,15 +111,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
-      {/* Scrollable body */}
+      {/* Scrollable calendar view */}
       <div className="flex w-full h-full overflow-auto" ref={scrollRef}>
         {/* Time column */}
         <div className="w-[60px] flex-shrink-0 text-xs text-gray-500 border-r bg-white">
-          <div className="flex flex-col" style={{ height: HOURS.length * HOUR_HEIGHT }}>
+          {/* Match spacing for date label */}
+          <div className="h-[40px] border-b border-white" />
+          <div className="flex flex-col">
             {HOURS.map((hour) => (
               <div
                 key={hour}
-                className="h-[60px] px-1 text-right leading-[60px] border-b border-gray-200"
+                className="h-[60px] border-b border-gray-200 flex items-center justify-end pr-1"
               >
                 {hour % 12 === 0 ? 12 : hour % 12}
                 {hour < 12 ? "am" : "pm"}
@@ -128,12 +130,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
         </div>
 
-        {/* Day columns */}
-        <div className="grid grid-cols-7 w-full relative" style={{ height: HOURS.length * HOUR_HEIGHT }}>
+        {/* Calendar columns */}
+        <div className="grid grid-cols-7 w-full relative" style={{ height: HOURS.length * HOUR_HEIGHT + 40 }}>
           {days.map((day, index) => (
             <div key={index} className="relative border-r border-gray-200">
               <div
-                className="sticky top-0 z-20 bg-white border-b px-2 py-1 text-sm font-medium"
+                className="sticky top-0 z-20 bg-white border-b px-2 py-1 text-sm font-medium h-[40px]"
                 onClick={() => onDateChange?.(day)}
               >
                 {format(day, "EEE, MMM d")}
@@ -151,7 +153,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     key={`event-${event.id}`}
                     className="absolute left-1 right-1 px-1"
                     style={{
-                      top: getTopOffset(start),
+                      top: getTopOffset(start) + 40,
                       height: getHeight(start, end),
                     }}
                     onClick={() => onEventClick?.(event)}
@@ -176,7 +178,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     key={`task-${task.id}`}
                     className="absolute left-1 right-1 px-1"
                     style={{
-                      top: getTopOffset(start),
+                      top: getTopOffset(start) + 40,
                       height: getHeight(start, end),
                     }}
                   >
