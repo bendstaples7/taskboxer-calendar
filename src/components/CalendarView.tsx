@@ -9,15 +9,19 @@ import {
   isSameDay,
   isSameMinute,
   isToday,
+  setHours,
+  setMinutes,
 } from "date-fns";
 import { Task, CalendarEvent } from "@/lib/types";
 import CalendarItem from "./calendar/CalendarItem";
+import { useDrop } from "react-dnd";
 
 interface CalendarViewProps {
   events: CalendarEvent[];
   tasks: Task[];
   onDateChange?: (date: Date) => void;
   onEventClick?: (event: CalendarEvent) => void;
+  onTaskDrop?: (task: Task, newStart: Date) => void;
   scrollToCurrentTime?: boolean;
   minimized?: boolean;
   singleDayMode?: boolean;
@@ -31,6 +35,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   tasks,
   onDateChange,
   onEventClick,
+  onTaskDrop,
   scrollToCurrentTime,
   minimized,
   singleDayMode = false,
@@ -49,16 +54,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       scrollRef.current.scrollTop = scrollHour * HOUR_HEIGHT;
     }
   }, [scrollToCurrentTime]);
-
-  const isAllDayEvent = (event: CalendarEvent) => {
-    const start = new Date(event.start);
-    const end = new Date(event.end);
-    return (
-      start.getHours() === 0 &&
-      start.getMinutes() === 0 &&
-      isSameMinute(end, new Date(start.getFullYear(), start.getMonth(), start.getDate(), 23, 59))
-    );
-  };
 
   const getEventsForDay = (day: Date) =>
     events.filter((event) => {
@@ -79,10 +74,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       return isSameDay(new Date(task.scheduled.start), day);
     });
 
+  const isAllDayEvent = (event: CalendarEvent) => {
+    const start = new Date(event.start);
+    const end = new Date(event.end);
+    return (
+      start.getHours() === 0 &&
+      start.getMinutes() === 0 &&
+      isSameMinute(end, new Date(start.getFullYear(), start.getMonth(), start.getDate(), 23, 59))
+    );
+  };
+
   const getTopOffset = (date: Date) => {
     const hour = getHours(date);
-    const minute = getMinutes(date);
-    return hour * HOUR_HEIGHT + (minute / 60) * HOUR_HEIGHT;
+    return hour * HOUR_HEIGHT;
   };
 
   const getHeight = (start: Date, end: Date) => {
@@ -137,8 +141,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
       {/* Time Grid */}
       <div className="flex w-full h-full overflow-auto relative" ref={scrollRef}>
-        <div className="w-[60px] flex-shrink-0 text-xs text-gray-500 bg-white border-r border-gray-200">
-          <div className="h-[40px] border-b border-gray-200" />
+        {/* Time Column */}
+        <div className="w-[60px] flex-shrink-0 text-xs text-gray-500 bg-white border-r border-gray-200 pt-[40px]">
           <div className="flex flex-col">
             {HOURS.map((hour) => (
               <div
@@ -152,19 +156,36 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
         </div>
 
-        {/* Vertical divider under date label */}
         <div className="absolute left-[60px] top-0 w-px bg-gray-200" style={{ height: HOURS.length * HOUR_HEIGHT + 40 }} />
 
-        {/* Day Columns */}
         <div
           className={`grid ${singleDayMode ? "grid-cols-1" : "grid-cols-7"} w-full relative`}
           style={{ height: HOURS.length * HOUR_HEIGHT + 40 }}
         >
-          {days.map((day, index) => (
-            <div key={index} className="relative border-r border-gray-200">
-              {HOURS.map((hour) => (
-                <div key={hour} className="h-[60px] border-b border-gray-100" />
-              ))}
+          {days.map((day, dayIndex) => (
+            <div key={dayIndex} className="relative border-r border-gray-200">
+              {HOURS.map((hour) => {
+                const dropStart = setMinutes(setHours(day, hour), 0);
+                const [{ isOver }, drop] = useDrop({
+                  accept: "TASK",
+                  drop: (item: { task: Task }) => {
+                    if (onTaskDrop) {
+                      onTaskDrop(item.task, dropStart);
+                    }
+                  },
+                  collect: (monitor) => ({
+                    isOver: monitor.isOver(),
+                  }),
+                });
+
+                return (
+                  <div
+                    ref={drop}
+                    key={hour}
+                    className={`h-[60px] border-b border-gray-100 ${isOver ? "bg-gray-200" : ""}`}
+                  />
+                );
+              })}
 
               {getEventsForDay(day).map((event, i) => {
                 if (!event?.start || !event?.end) return null;
@@ -175,7 +196,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     key={`event-${event.id}`}
                     className="absolute left-1 right-1 px-1"
                     style={{
-                      top: getTopOffset(start) + 40,
+                      top: getTopOffset(start),
                       height: getHeight(start, end),
                     }}
                     onClick={() => onEventClick?.(event)}
@@ -201,7 +222,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     key={`task-${task.id}`}
                     className="absolute left-1 right-1 px-1"
                     style={{
-                      top: getTopOffset(start) + 40,
+                      top: getTopOffset(start),
                       height: getHeight(start, end),
                     }}
                   >
@@ -217,10 +238,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 );
               })}
 
-              {currentDayIndex === index && (
+              {currentDayIndex === dayIndex && (
                 <div
                   className="current-time-indicator"
-                  style={{ top: currentTopOffset + 40 }}
+                  style={{ top: currentTopOffset }}
                 />
               )}
             </div>

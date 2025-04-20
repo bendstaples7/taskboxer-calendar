@@ -38,7 +38,6 @@ const Index = () => {
 
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventDialog, setShowEventDialog] = useState(false);
-
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [defaultPriority, setDefaultPriority] = useState<Priority>('medium');
 
@@ -103,8 +102,6 @@ const Index = () => {
   const handleCreateTask = async (task: Task) => {
     try {
       const created = await createTask(task);
-
-      // Ensure minimum required fields are present
       const safeTask: Task = {
         ...created,
         scheduled: created.scheduled ?? null,
@@ -114,12 +111,36 @@ const Index = () => {
         completed: created.completed ?? false,
         priority: created.priority ?? 'medium',
       };
-
       setTasks(prev => [...prev, safeTask]);
       showToast("Task created", task.title);
     } catch (err) {
       console.error("Error creating task:", err);
       showToast("Error", "Failed to create task", "destructive");
+    }
+  };
+
+  const handleTaskDrop = async (task: Task, newStart: Date) => {
+    const duration = task.estimatedTime || 30;
+    const newEnd = new Date(newStart.getTime() + duration * 60 * 1000);
+
+    const updatedTask: Task = {
+      ...task,
+      scheduled: {
+        start: newStart.toISOString(),
+        end: newEnd.toISOString()
+      }
+    };
+
+    try {
+      await updateTask(updatedTask);
+      setTasks(prev =>
+        prev.map(t => (t.id === task.id ? updatedTask : t))
+      );
+      console.log("✅ Scheduled Task:", updatedTask);
+      showToast("Task scheduled", `${task.title} at ${newStart.toLocaleTimeString()}`);
+    } catch (err) {
+      console.error("Failed to schedule task:", err);
+      showToast("Error", "Could not schedule task", "destructive");
     }
   };
 
@@ -186,6 +207,7 @@ const Index = () => {
               minimized={!calendarExpanded}
               singleDayMode={taskboardExpanded}
               onEventClick={handleEventClick}
+              onTaskDrop={handleTaskDrop}
             />
           </AnimatedPanel>
 
