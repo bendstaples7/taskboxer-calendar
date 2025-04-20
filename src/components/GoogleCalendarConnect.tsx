@@ -8,17 +8,9 @@ interface GoogleCalendarConnectProps {
   onEventsLoaded?: (events: CalendarEvent[]) => void;
 }
 
-// Converts UTC ISO strings to local Date objects
-const toLocalDate = (isoString: string) => {
-  const utcDate = new Date(isoString);
-  return new Date(
-    utcDate.getUTCFullYear(),
-    utcDate.getUTCMonth(),
-    utcDate.getUTCDate(),
-    utcDate.getUTCHours(),
-    utcDate.getUTCMinutes(),
-    utcDate.getUTCSeconds()
-  );
+const parseLocalDate = (dateStr: string) => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
 };
 
 const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({ onEventsLoaded }) => {
@@ -63,14 +55,14 @@ const GoogleCalendarConnect: React.FC<GoogleCalendarConnectProps> = ({ onEventsL
           .filter((event: any) => event.start?.dateTime || event.start?.date)
           .map((event: any) => {
             const start = event.start.dateTime
-              ? toLocalDate(event.start.dateTime)
-              : new Date(event.start.date);
+              ? new Date(event.start.dateTime)
+              : parseLocalDate(event.start.date);
 
             let end;
             if (event.end.dateTime) {
-              end = toLocalDate(event.end.dateTime);
+              end = new Date(event.end.dateTime);
             } else if (event.end.date) {
-              end = new Date(event.end.date);
+              end = parseLocalDate(event.end.date);
               end.setDate(end.getDate() - 1);
               end.setHours(23, 59, 59);
             }

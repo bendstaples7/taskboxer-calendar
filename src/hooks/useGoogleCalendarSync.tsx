@@ -8,7 +8,7 @@ interface UseGoogleCalendarSyncProps {
 }
 
 // Converts UTC ISO strings to local Date objects
-const toLocalDate = (isoString: string) => {
+const toLocalDateTime = (isoString: string) => {
   const utcDate = new Date(isoString);
   return new Date(
     utcDate.getUTCFullYear(),
@@ -18,6 +18,12 @@ const toLocalDate = (isoString: string) => {
     utcDate.getUTCMinutes(),
     utcDate.getUTCSeconds()
   );
+};
+
+// Converts "YYYY-MM-DD" all-day format to a proper local Date
+const parseLocalDate = (dateStr: string) => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
 };
 
 export const useGoogleCalendarSync = (props?: UseGoogleCalendarSyncProps) => {
@@ -72,14 +78,14 @@ export const useGoogleCalendarSync = (props?: UseGoogleCalendarSyncProps) => {
         .filter((event: any) => event.start?.dateTime || event.start?.date)
         .map((event: any) => {
           const start = event.start.dateTime
-            ? toLocalDate(event.start.dateTime)
-            : new Date(event.start.date);
+            ? toLocalDateTime(event.start.dateTime)
+            : parseLocalDate(event.start.date);
 
           let end;
           if (event.end.dateTime) {
-            end = toLocalDate(event.end.dateTime);
+            end = toLocalDateTime(event.end.dateTime);
           } else if (event.end.date) {
-            end = new Date(event.end.date);
+            end = parseLocalDate(event.end.date);
             end.setDate(end.getDate() - 1);
             end.setHours(23, 59, 59);
           }
