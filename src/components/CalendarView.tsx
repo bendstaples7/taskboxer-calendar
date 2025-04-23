@@ -154,6 +154,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
       {/* Scrollable time grid */}
       <div className="flex w-full h-full overflow-auto relative" ref={scrollRef}>
+        {/* Time column */}
         <div className="w-[60px] flex-shrink-0 text-xs text-gray-500 bg-white border-r border-gray-200">
           <div className="flex flex-col" style={{ height: TOTAL_SCROLLABLE_HEIGHT }}>
             {Array.from({ length: 24 }, (_, hour) => (
@@ -168,14 +169,48 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
         </div>
 
+        {/* Divider line inside scroll area */}
         <div className="absolute left-[60px] top-[88px] w-px bg-gray-300" style={{ height: TOTAL_SCROLLABLE_HEIGHT }} />
 
+        {/* Main grid */}
         <div
           className={`grid ${singleDayMode ? "grid-cols-1" : "grid-cols-7"} w-full relative`}
           style={{ height: TOTAL_SCROLLABLE_HEIGHT }}
         >
           {days.map((day, dayIndex) => (
             <div key={dayIndex} className="relative border-r border-gray-200">
+              {MINUTES.map((minute) => {
+                const hour = Math.floor(minute / 60);
+                const minuteOfHour = minute % 60;
+                const dropStart = setMinutes(setHours(day, hour), minuteOfHour);
+                const isHourLine = minuteOfHour === 0;
+
+                const [{ isOver, canDrop }, drop] = useDrop({
+                  accept: ["TASK", "CALENDAR_TASK"],
+                  drop: (item: any) => {
+                    if (item?.task && onTaskDrop) {
+                      onTaskDrop(item.task, dropStart);
+                    }
+                  },
+                  collect: (monitor) => ({
+                    isOver: monitor.isOver({ shallow: true }),
+                    canDrop: monitor.canDrop(),
+                  }),
+                });
+
+                return (
+                  <div
+                    ref={drop}
+                    key={minute}
+                    className={`h-[1px] ${isHourLine ? "border-b border-gray-200" : ""}`}
+                  >
+                    {isOver && canDrop && (
+                      <div className="h-2 -mt-1 w-full bg-blue-500 shadow-md rounded transition-all duration-75 opacity-80" />
+                    )}
+                  </div>
+                );
+              })}
+
               {getEventsForDay(day).map((event, i) => {
                 const start = new Date(event.start);
                 const end = new Date(event.end);
@@ -231,45 +266,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   style={{ top: currentTopOffset }}
                 />
               )}
-              <CalendarDayDropZone day={day} onTaskDrop={onTaskDrop} />
             </div>
           ))}
         </div>
       </div>
 
       <TrashCanOverlay visible={isDragging} onDropTask={handleArchiveDrop} />
-    </div>
-  );
-};
-
-interface CalendarDayDropZoneProps {
-  day: Date;
-  onTaskDrop?: (task: Task, newStart: Date) => void;
-}
-
-const CalendarDayDropZone: React.FC<CalendarDayDropZoneProps> = ({ day, onTaskDrop }) => {
-  const [{ isOver, canDrop }, drop] = useDrop({
-    accept: ["TASK", "CALENDAR_TASK"],
-    drop: (item: any) => {
-      if (item?.task && onTaskDrop) {
-        const dropStart = setHours(setMinutes(day, 0), 0);
-        onTaskDrop(item.task, dropStart);
-      }
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver({ shallow: true }),
-      canDrop: monitor.canDrop(),
-    }),
-  });
-
-  return (
-    <div
-      ref={drop}
-      className="absolute top-0 left-0 w-full h-full"
-    >
-      {isOver && canDrop && (
-        <div className="h-full w-full bg-blue-500 shadow-md rounded transition-all duration-75 opacity-80" />
-      )}
     </div>
   );
 };
