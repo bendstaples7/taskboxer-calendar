@@ -62,3 +62,20 @@ npm run dev
 
 # Open in browser
 http://localhost:8080
+
+---
+
+## PowerShell Compatibility
+
+When using PowerShell, use semicolons (`;`) or newlines to separate commands instead of `&&`. For example:
+
+```powershell
+git pull origin main ; git checkout -b Task-Maximize-Blowup
+```
+
+or
+
+```powershell
+git pull origin main
+git checkout -b Task-Maximize-Blowup
+```

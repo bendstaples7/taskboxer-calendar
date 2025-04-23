@@ -1,17 +1,16 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Task, Label, Priority } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 
-// Default user ID for anonymous usage - in a real app this would be from authentication
 const DEFAULT_USER_ID = '00000000-0000-0000-0000-000000000000';
 
-// Convert from app task model to database model
 const taskToDbModel = (task: Task, userId: string) => {
   const status = task.completed
     ? 'completed'
     : task.scheduled
     ? 'scheduled'
+    : task.archived
+    ? 'archived'
     : 'unscheduled';
 
   return {
@@ -35,7 +34,6 @@ const taskToDbModel = (task: Task, userId: string) => {
   };
 };
 
-// Convert from database model to app task model
 const dbModelToTask = (dbTask: any, labels: Label[] = []): Task => {
   return {
     id: dbTask.id,
@@ -44,12 +42,13 @@ const dbModelToTask = (dbTask: any, labels: Label[] = []): Task => {
     priority: dbTask.priority as Priority,
     estimatedTime: dbTask.estimated_time || 30,
     completed: dbTask.status === 'completed',
+    archived: dbTask.status === 'archived',
     labels,
     position: dbTask.position || 0,
     scheduled: dbTask.start_time && dbTask.end_time
-      ? { 
-          start: new Date(dbTask.start_time), 
-          end: new Date(dbTask.end_time) 
+      ? {
+          start: new Date(dbTask.start_time),
+          end: new Date(dbTask.end_time),
         }
       : undefined,
     timerStarted: dbTask.timer_started ? new Date(dbTask.timer_started) : undefined,
@@ -61,18 +60,32 @@ const dbModelToTask = (dbTask: any, labels: Label[] = []): Task => {
   };
 };
 
+export const archiveTask = async (taskId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('tasks')
+      .update({ status: 'archived', updated_at: new Date().toISOString() })
+      .eq('id', taskId);
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Error archiving task:', err);
+    return false;
+  }
+};
+
 export const fetchTasks = async (): Promise<Task[]> => {
   try {
-    // Fetch tasks
     const { data: dbTasks, error: tasksError } = await supabase
       .from('tasks')
       .select('*')
-      .eq('user_id', DEFAULT_USER_ID);
+      .eq('user_id', DEFAULT_USER_ID)
+      .not('status', 'eq.archived');
 
     if (tasksError) throw tasksError;
     if (!dbTasks) return [];
 
-    // Fetch task-label relations
     const { data: relations, error: relationsError } = await supabase
       .from('task_label_relations')
       .select('*')
@@ -80,9 +93,8 @@ export const fetchTasks = async (): Promise<Task[]> => {
 
     if (relationsError) throw relationsError;
 
-    // Fetch all unique labels
     const labelIds = [...new Set((relations || []).map(rel => rel.label_id))];
-    
+
     let labels: any[] = [];
     if (labelIds.length > 0) {
       const { data: dbLabels, error: labelsError } = await supabase
@@ -94,18 +106,17 @@ export const fetchTasks = async (): Promise<Task[]> => {
       labels = dbLabels || [];
     }
 
-    // Map tasks with their labels
     return dbTasks.map(dbTask => {
       const taskLabelIds = (relations || [])
         .filter(rel => rel.task_id === dbTask.id)
         .map(rel => rel.label_id);
-      
+
       const taskLabels = labels
         .filter(label => taskLabelIds.includes(label.id))
         .map(label => ({
           id: label.id,
           name: label.name,
-          color: label.color
+          color: label.color,
         }));
 
       return dbModelToTask(dbTask, taskLabels);
@@ -118,7 +129,6 @@ export const fetchTasks = async (): Promise<Task[]> => {
 
 export const createTask = async (task: Task, userId = DEFAULT_USER_ID): Promise<Task | null> => {
   try {
-    // Create task
     const { data: createdTask, error: taskError } = await supabase
       .from('tasks')
       .insert(taskToDbModel(task, userId))
@@ -128,12 +138,11 @@ export const createTask = async (task: Task, userId = DEFAULT_USER_ID): Promise<
     if (taskError) throw taskError;
     if (!createdTask) return null;
 
-    // Create label relations if needed
     if (task.labels && task.labels.length > 0) {
       const labelRelations = task.labels.map(label => ({
         id: uuidv4(),
         task_id: createdTask.id,
-        label_id: label.id
+        label_id: label.id,
       }));
 
       const { error: relationsError } = await supabase
@@ -145,7 +154,7 @@ export const createTask = async (task: Task, userId = DEFAULT_USER_ID): Promise<
 
     return {
       ...task,
-      id: createdTask.id
+      id: createdTask.id,
     };
   } catch (error) {
     console.error('Error creating task:', error);
@@ -155,7 +164,6 @@ export const createTask = async (task: Task, userId = DEFAULT_USER_ID): Promise<
 
 export const updateTask = async (task: Task, userId = DEFAULT_USER_ID): Promise<boolean> => {
   try {
-    // Update task
     const { error: taskError } = await supabase
       .from('tasks')
       .update(taskToDbModel(task, userId))
@@ -163,8 +171,6 @@ export const updateTask = async (task: Task, userId = DEFAULT_USER_ID): Promise<
 
     if (taskError) throw taskError;
 
-    // Handle label relations
-    // First, delete existing relations
     const { error: deleteError } = await supabase
       .from('task_label_relations')
       .delete()
@@ -172,12 +178,11 @@ export const updateTask = async (task: Task, userId = DEFAULT_USER_ID): Promise<
 
     if (deleteError) throw deleteError;
 
-    // Then, insert new relations
     if (task.labels && task.labels.length > 0) {
       const labelRelations = task.labels.map(label => ({
         id: uuidv4(),
         task_id: task.id,
-        label_id: label.id
+        label_id: label.id,
       }));
 
       const { error: relationsError } = await supabase
@@ -196,7 +201,6 @@ export const updateTask = async (task: Task, userId = DEFAULT_USER_ID): Promise<
 
 export const deleteTask = async (taskId: string): Promise<boolean> => {
   try {
-    // Delete label relations first
     const { error: relationsError } = await supabase
       .from('task_label_relations')
       .delete()
@@ -204,7 +208,6 @@ export const deleteTask = async (taskId: string): Promise<boolean> => {
 
     if (relationsError) throw relationsError;
 
-    // Delete the task
     const { error: taskError } = await supabase
       .from('tasks')
       .delete()
@@ -231,7 +234,7 @@ export const fetchLabels = async (userId = DEFAULT_USER_ID): Promise<Label[]> =>
     return (data || []).map(label => ({
       id: label.id,
       name: label.name,
-      color: label.color
+      color: label.color,
     }));
   } catch (error) {
     console.error('Error fetching labels:', error);
@@ -247,7 +250,7 @@ export const createLabel = async (label: Label, userId = DEFAULT_USER_ID): Promi
         id: label.id || uuidv4(),
         name: label.name,
         color: label.color,
-        user_id: userId
+        user_id: userId,
       })
       .select()
       .single();
@@ -258,7 +261,7 @@ export const createLabel = async (label: Label, userId = DEFAULT_USER_ID): Promi
     return {
       id: data.id,
       name: data.name,
-      color: data.color
+      color: data.color,
     };
   } catch (error) {
     console.error('Error creating label:', error);
@@ -275,7 +278,7 @@ export const updateTaskPositions = async (tasks: Task[], userId = DEFAULT_USER_I
       user_id: userId,
       priority: task.priority,
       description: task.description,
-      status: task.completed ? 'completed' : task.scheduled ? 'scheduled' : 'unscheduled'
+      status: task.completed ? 'completed' : task.scheduled ? 'scheduled' : 'unscheduled',
     }));
 
     const { error } = await supabase

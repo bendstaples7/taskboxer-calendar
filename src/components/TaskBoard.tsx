@@ -71,6 +71,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
 
     return (
       <div
+        key={priority}
         className="min-w-[16rem] flex flex-col bg-gray-50 border-r border-gray-300 rounded-md"
         onDragOver={handleDragOver}
         onDrop={(e) => handleDrop(e, priority)}
