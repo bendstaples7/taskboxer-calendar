@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Task, Priority, Label, CalendarEvent } from "@/lib/types";
+import { useDrop, useDragLayer } from "react-dnd";
+import TrashCanOverlay from "@/components/TrashCanOverlay";
 import TaskBoard from "@/components/TaskBoard";
 import StackedTaskBoard from "@/components/StackedTaskBoard";
 import CalendarView from "@/components/CalendarView";
@@ -41,6 +43,9 @@ const Index = () => {
   const { toast } = useToast();
   const [lastToastTimestamp, setLastToastTimestamp] = useState<number>(0);
   const [lastToastMessage, setLastToastMessage] = useState<string>('');
+  const { isDragging } = useDragLayer((monitor) => ({
+    isDragging: monitor.isDragging(),
+  }));
 
   const {
     isInitialized,
@@ -123,8 +128,8 @@ const Index = () => {
     const updatedTask: Task = {
       ...task,
       scheduled: {
-        start: newStart.toISOString(),
-        end: newEnd.toISOString(),
+        start: new Date(newStart).toISOString(),
+        end: new Date(newEnd).toISOString(),
       },
     };
 
@@ -249,7 +254,6 @@ const Index = () => {
       <AddTaskDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
-        onClose={() => setShowAddDialog(false)}
         onCreate={handleCreateTask}
         defaultPriority={defaultPriority}
         labels={labels}
