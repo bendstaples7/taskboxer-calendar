@@ -38,6 +38,7 @@ export interface CalendarEvent {
   end: Date;
   isGoogleEvent: boolean;
   googleEventId?: string; // ID for synchronization
+  colorId?: string;
 }
 
 export interface TaskSection {

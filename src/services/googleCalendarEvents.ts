@@ -32,7 +32,8 @@ export const useGoogleCalendarEvents = () => {
         title: event.summary || 'Untitled Event',
         start: new Date(event.start.dateTime || event.start.date),
         end: new Date(event.end.dateTime || event.end.date),
-        isGoogleEvent: true
+        isGoogleEvent: true,
+        colorId: (event as any).colorId,
       }));
     } catch (error) {
       console.error("Error fetching events from Google Calendar:", error);
