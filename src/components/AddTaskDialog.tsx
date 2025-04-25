@@ -5,24 +5,29 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Priority, Task, Label as TaskLabel } from "@/lib/types";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CheckIcon, PlusIcon, X } from "lucide-react";
+import { CheckIcon, PlusIcon, X, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { v4 as uuidv4 } from "uuid";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface AddTaskDialogProps {
   open: boolean;
-  initialPriority?: Priority;
   onOpenChange: (open: boolean) => void;
   onCreate: (task: Task) => void;
   availableLabels: TaskLabel[];
   onAddLabel: (label: TaskLabel) => void;
   initialDuration?: number;
+  defaultPriority?: Priority;
 }
 
 const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
   open,
-  initialPriority = 'medium',
+  defaultPriority = 'medium',
   onOpenChange,
   onCreate,
   availableLabels,
@@ -31,8 +36,12 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
 }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState<Priority>(initialPriority);
+  const [priority, setPriority] = useState<Priority>('medium');
   const [estimatedHours, setEstimatedHours] = useState<number>(0);
+
+  useEffect(() => {
+    setPriority(defaultPriority || 'medium');
+  }, [defaultPriority]);
   const [estimatedMinutes, setEstimatedMinutes] = useState<number>(30);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [newLabelName, setNewLabelName] = useState("");
@@ -48,14 +57,10 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
     }
   }, [initialDuration]);
 
-  useEffect(() => {
-    setPriority(initialPriority);
-  }, [initialPriority]);
-
-  const resetForm = () => {
+  const resetForm = (newDefaultPriority?: Priority) => {
     setTitle("");
     setDescription("");
-    setPriority(initialPriority);
+    setPriority(newDefaultPriority || defaultPriority);
     setEstimatedHours(0);
     setEstimatedMinutes(30);
     setSelectedLabels([]);
@@ -117,7 +122,7 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(open) => {
-      if (!open) resetForm();
+      if (!open) resetForm(defaultPriority);
       onOpenChange(open);
     }}>
       <DialogContent className="sm:max-w-md" onKeyDown={handleKeyDown}>
@@ -147,28 +152,28 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
           </div>
           <div className="grid gap-2">
             <Label>Priority</Label>
-            <RadioGroup
-              value={priority}
-              onValueChange={(value) => setPriority(value as Priority)}
-              className="flex"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="low" id="low" />
-                <Label htmlFor="low" className="text-blue-500 font-medium">Low</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="medium" id="medium" />
-                <Label htmlFor="medium" className="text-yellow-500 font-medium">Medium</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="high" id="high" />
-                <Label htmlFor="high" className="text-orange-500 font-medium">High</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="critical" id="critical" />
-                <Label htmlFor="critical" className="text-red-500 font-medium">Critical</Label>
-              </div>
-            </RadioGroup>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="justify-start w-[150px]">
+                  {priority ? priority.charAt(0).toUpperCase() + priority.slice(1) : "Priority"}
+                  <ChevronDown className="w-4 h-4 ml-auto opacity-50 shrink-0" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-[150px]">
+                <DropdownMenuItem onClick={() => setPriority('low')}>
+                  Low
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setPriority('medium')}>
+                  Medium
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setPriority('high')}>
+                  High
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setPriority('critical')}>
+                  Critical
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           <div className="grid gap-2">
             <Label>Estimated Time</Label>

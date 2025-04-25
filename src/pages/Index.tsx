@@ -128,8 +128,8 @@ const Index = () => {
     const updatedTask: Task = {
       ...task,
       scheduled: {
-        start: new Date(newStart).toISOString(),
-        end: new Date(newEnd).toISOString(),
+        start: new Date(newStart),
+        end: new Date(newEnd),
       },
     };
 
@@ -253,7 +253,11 @@ const Index = () => {
 
       <AddTaskDialog
         open={showAddDialog}
-        onOpenChange={setShowAddDialog}
+        onOpenChange={(open) => {
+          setShowAddDialog(open);
+          if (!open) {
+          }
+        }}
         onCreate={handleCreateTask}
         defaultPriority={defaultPriority}
         labels={labels}
