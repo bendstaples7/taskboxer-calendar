@@ -12,12 +12,6 @@ interface TaskBoardSectionProps {
   onToggle: () => void;
   onTaskClick: (task: Task) => void;
   onAddTask: () => void;
-  onDragStart: (e: React.DragEvent, task: Task) => void;
-  onDragOver: (e: React.DragEvent, priority: Priority, index?: number) => void;
-  onDragLeave: (e: React.DragEvent) => void;
-  onDrop: (e: React.DragEvent, priority: Priority, dropIndex?: number) => void;
-  dragOverPriority: Priority | null;
-  dragOverIndex: number | null;
   minimized?: boolean;
   className?: string;
   children?: React.ReactNode;
@@ -34,12 +28,6 @@ const TaskBoardSection: React.FC<TaskBoardSectionProps> = ({
   onToggle,
   onTaskClick,
   onAddTask,
-  onDragStart,
-  onDragOver,
-  onDragLeave,
-  onDrop,
-  dragOverPriority,
-  dragOverIndex,
   minimized = false,
   className = "",
   children,
@@ -52,9 +40,6 @@ const TaskBoardSection: React.FC<TaskBoardSectionProps> = ({
   return (
     <div 
       className={`board-section relative ${className}`}
-      onDragOver={(e) => onDragOver(e, priority)}
-      onDragLeave={onDragLeave}
-      onDrop={(e) => onDrop(e, priority)}
     >
       <div className="flex items-center justify-between mb-2 bg-gray-100 p-2 rounded">
         <Button 
@@ -99,25 +84,9 @@ const TaskBoardSection: React.FC<TaskBoardSectionProps> = ({
               
               {tasks.map((task, index) => (
                 <div key={task.id} className="relative">
-                  {dragOverPriority === priority && dragOverIndex === index && (
-                    <div className="drop-indicator absolute -top-1 left-0 right-0" />
-                  )}
-                  <div 
-                    draggable 
-                    onDragStart={(e) => onDragStart(e, task)}
-                    onClick={() => onTaskClick(task)}
-                  >
-                    <TaskCard task={task} />
-                  </div>
-                  {dragOverPriority === priority && dragOverIndex === index + 1 && (
-                    <div className="drop-indicator absolute -bottom-1 left-0 right-0" />
-                  )}
+                  <TaskCard task={task} onClick={() => onTaskClick(task)} />
                 </div>
               ))}
-              
-              {dragOverPriority === priority && dragOverIndex === tasks.length && (
-                <div className="drop-indicator absolute bottom-0 left-0 right-0" />
-              )}
             </>
           )}
         </div>

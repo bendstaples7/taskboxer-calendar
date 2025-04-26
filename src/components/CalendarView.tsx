@@ -27,9 +27,9 @@ interface CalendarViewProps {
   singleDayMode?: boolean;
 }
 
-const MINUTES = Array.from({ length: 1440 }, (_, i) => i);
+const MINUTES_IN_DAY = 1440;
 const MINUTE_HEIGHT = 1;
-const TOTAL_SCROLLABLE_HEIGHT = 1440;
+const TOTAL_SCROLLABLE_HEIGHT = MINUTES_IN_DAY * MINUTE_HEIGHT;
 
 const CalendarView: React.FC<CalendarViewProps> = ({
   events,
@@ -66,13 +66,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     );
   };
 
-  const getTopOffset = (date: Date) => {
-    return (date.getHours() * 60 + date.getMinutes()) * MINUTE_HEIGHT;
-  };
-
-  const getHeight = (start: Date, end: Date) => {
-    return Math.max(differenceInMinutes(end, start), 1) * MINUTE_HEIGHT;
-  };
+  const getTopOffset = (date: Date) => (date.getHours() * 60 + date.getMinutes()) * MINUTE_HEIGHT;
+  const getHeight = (start: Date, end: Date) => Math.max(differenceInMinutes(end, start), 1) * MINUTE_HEIGHT;
 
   const getEventsForDay = (day: Date) =>
     events.filter(event => event.start && event.end && isSameDay(new Date(event.start), day) && !isAllDayEvent(event));
@@ -89,7 +84,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
-      {/* Header row */}
+      {/* Header */}
       <div className="flex w-full sticky top-0 z-30 bg-white border-b pr-[16px]">
         <div className="w-[60px] flex-shrink-0 bg-gray-50 border-r border-gray-200" />
         <div className={`flex-1 grid ${singleDayMode ? "grid-cols-1" : "grid-cols-7"}`}>
@@ -107,7 +102,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
-      {/* All-day row */}
+      {/* All Day Events Row */}
       <div className="flex w-full sticky top-[40px] z-20 bg-white border-b pr-[16px]">
         <div className="w-[60px] flex-shrink-0 bg-gray-50 border-r text-xs text-center py-2 font-medium border-b border-gray-200">
           All-day
@@ -129,9 +124,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
-      {/* Scrollable time grid */}
+      {/* Scrollable Main Grid */}
       <div className="flex w-full h-full overflow-auto relative" ref={scrollRef}>
-        {/* Time column */}
+        {/* Time Column */}
         <div className="w-[60px] flex-shrink-0 text-xs text-gray-500 bg-white border-r border-gray-200">
           <div className="flex flex-col" style={{ height: TOTAL_SCROLLABLE_HEIGHT }}>
             {Array.from({ length: 24 }, (_, hour) => (
@@ -146,29 +141,56 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
         </div>
 
-        {/* Divider line inside scroll area */}
-        <div className="absolute left-[60px] top-[88px] w-px bg-gray-300" style={{ height: TOTAL_SCROLLABLE_HEIGHT }} />
-
-        {/* Main grid */}
+        {/* Main Calendar Columns */}
         <div
           className={`grid ${singleDayMode ? "grid-cols-1" : "grid-cols-7"} w-full relative`}
           style={{ height: TOTAL_SCROLLABLE_HEIGHT }}
         >
           {days.map((day, dayIndex) => (
             <div key={dayIndex} className="relative border-r border-gray-200">
-              {Array.from({ length: 24 }, (_, hour) => {
-                const dropStart = setHours(day, hour);
+              {/* Drop zones per 15min */}
+              {Array.from({ length: 96 }, (_, index) => {
+                const hour = Math.floor(index / 4);
+                const minute = (index % 4) * 15;
+                const dropStart = setMinutes(setHours(day, hour), minute);
+
+                const [{ isOver, draggedItem }, drop] = useDrop<{
+                  task: Task;
+                }, void, { isOver: boolean; draggedItem: Task | null }>({
+                  accept: "TASK",
+                  drop: (item) => {
+                    if (onTaskDrop) {
+                      onTaskDrop(item.task, dropStart);
+                    }
+                  },
+                  collect: (monitor) => ({
+                    isOver: monitor.isOver(),
+                    draggedItem: monitor.getItem() ? (monitor.getItem() as { task: Task }).task : null,
+                  }),
+                });
+
+                const indicatorHeight = draggedItem?.estimatedTime
+                  ? draggedItem.estimatedTime * MINUTE_HEIGHT
+                  : 15;
+
                 return (
-                  <div
-                    key={hour}
-                    className="h-[60px] border-b border-gray-200"
-                  >
-                    {/* Drop zone for each hour */}
-                    <div className="h-full" />
+                  <div key={index} className="relative h-[15px]" ref={drop}>
+                    {/* Static hour lines */}
+                    {minute === 0 && (
+                      <div className="absolute top-0 left-0 w-full border-t border-gray-200" />
+                    )}
+                    {/* Drag shadow */}
+                    {isOver && (
+                      <div
+                        className="absolute left-0 right-0 bg-blue-100 opacity-50 rounded"
+                        style={{ height: `${indicatorHeight}px`, top: 0 }}
+                      />
+                    )}
                   </div>
                 );
               })}
 
+              {/* Events */}
               {getEventsForDay(day).map((event, i) => {
                 const start = new Date(event.start);
                 const end = new Date(event.end);
@@ -194,6 +216,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 );
               })}
 
+              {/* Tasks */}
               {getTasksForDay(day).map((task, i) => {
                 const start = new Date(task.scheduled?.start || '');
                 const end = new Date(task.scheduled?.end || '');
@@ -218,6 +241,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 );
               })}
 
+              {/* Current Time Indicator */}
               {currentDayIndex === dayIndex && (
                 <div
                   className="current-time-indicator"

@@ -13,7 +13,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 
 interface AddTaskDialogProps {
   open: boolean;
@@ -27,7 +27,7 @@ interface AddTaskDialogProps {
 
 const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
   open,
-  defaultPriority = 'medium',
+  defaultPriority = "medium",
   onOpenChange,
   onCreate,
   availableLabels,
@@ -36,52 +36,39 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
 }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState<Priority>('medium');
-  const [estimatedHours, setEstimatedHours] = useState<number>(0);
-
-  useEffect(() => {
-    setPriority(defaultPriority || 'medium');
-  }, [defaultPriority]);
-  const [estimatedMinutes, setEstimatedMinutes] = useState<number>(30);
+  const [priority, setPriority] = useState<Priority>("medium");
+  const [estimatedTime, setEstimatedTime] = useState<number>(initialDuration || 30);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [newLabelName, setNewLabelName] = useState("");
   const [newLabelColor, setNewLabelColor] = useState("#3B82F6");
   const [showLabelForm, setShowLabelForm] = useState(false);
 
   useEffect(() => {
-    if (initialDuration) {
-      const hours = Math.floor(initialDuration / 60);
-      const minutes = initialDuration % 60;
-      setEstimatedHours(hours);
-      setEstimatedMinutes(minutes);
-    }
-  }, [initialDuration]);
+    setPriority(defaultPriority || "medium");
+  }, [defaultPriority]);
 
-  const resetForm = (newDefaultPriority?: Priority) => {
+  const resetForm = () => {
     setTitle("");
     setDescription("");
-    setPriority(newDefaultPriority || defaultPriority);
-    setEstimatedHours(0);
-    setEstimatedMinutes(30);
+    setPriority(defaultPriority || "medium");
+    setEstimatedTime(initialDuration || 30);
     setSelectedLabels([]);
     setNewLabelName("");
     setNewLabelColor("#3B82F6");
     setShowLabelForm(false);
   };
 
-  const handleAddTask = () => {
+  const handleCreateTask = () => {
     if (!title.trim()) return;
-
-    const totalMinutes = estimatedHours * 60 + estimatedMinutes;
 
     const newTask: Task = {
       id: uuidv4(),
       title,
       description,
       priority,
-      estimatedTime: totalMinutes,
+      estimatedTime,
       completed: false,
-      labels: availableLabels.filter(label => selectedLabels.includes(label.id))
+      labels: availableLabels.filter(label => selectedLabels.includes(label.id)),
     };
 
     onCreate(newTask);
@@ -89,10 +76,49 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
     onOpenChange(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleAddTask();
+  const increaseEstimatedTime = () => {
+    if (estimatedTime === 15) {
+      setEstimatedTime(30);
+    } else if (estimatedTime === 30) {
+      setEstimatedTime(45);
+    } else if (estimatedTime === 45) {
+      setEstimatedTime(60);
+    } else if (estimatedTime >= 60) {
+      if (estimatedTime % 60 === 0) {
+        setEstimatedTime(estimatedTime + 30);
+      } else {
+        setEstimatedTime(Math.ceil(estimatedTime / 60) * 60);
+      }
+    }
+  };
+
+  const decreaseEstimatedTime = () => {
+    if (estimatedTime === 30) {
+      setEstimatedTime(15);
+    } else if (estimatedTime === 45) {
+      setEstimatedTime(30);
+    } else if (estimatedTime === 60) {
+      setEstimatedTime(45);
+    } else if (estimatedTime > 60) {
+      if (estimatedTime % 60 === 0) {
+        setEstimatedTime(estimatedTime - 30);
+      } else {
+        setEstimatedTime(Math.floor(estimatedTime / 60) * 60);
+      }
+    }
+  };
+
+  const formatTime = (mins: number) => {
+    if (mins < 60) {
+      return `${mins} min${mins !== 1 ? "s" : ""}`;
+    } else {
+      const hours = Math.floor(mins / 60);
+      const remainingMins = mins % 60;
+      if (remainingMins === 0) {
+        return `${hours} hr${hours !== 1 ? "s" : ""}`;
+      } else {
+        return `${hours} hr ${remainingMins} min`;
+      }
     }
   };
 
@@ -110,7 +136,7 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
     const newLabel: TaskLabel = {
       id: uuidv4(),
       name: newLabelName.trim(),
-      color: newLabelColor
+      color: newLabelColor,
     };
 
     onAddLabel(newLabel);
@@ -120,16 +146,25 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
     setShowLabelForm(false);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleCreateTask();
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={(open) => {
-      if (!open) resetForm(defaultPriority);
+      if (!open) resetForm();
       onOpenChange(open);
     }}>
       <DialogContent className="sm:max-w-md" onKeyDown={handleKeyDown}>
         <DialogHeader>
           <DialogTitle>Add New Task</DialogTitle>
         </DialogHeader>
+
         <div className="grid gap-4 py-4">
+          {/* Title */}
           <div className="grid gap-2">
             <Label htmlFor="title">Title</Label>
             <Input
@@ -140,6 +175,8 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
               autoFocus
             />
           </div>
+
+          {/* Description */}
           <div className="grid gap-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -150,6 +187,8 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
               rows={3}
             />
           </div>
+
+          {/* Priority */}
           <div className="grid gap-2">
             <Label>Priority</Label>
             <DropdownMenu>
@@ -160,50 +199,43 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-[150px]">
-                <DropdownMenuItem onClick={() => setPriority('low')}>
-                  Low
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setPriority('medium')}>
-                  Medium
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setPriority('high')}>
-                  High
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setPriority('critical')}>
-                  Critical
-                </DropdownMenuItem>
+                {["low", "medium", "high", "critical"].map((level) => (
+                  <DropdownMenuItem key={level} onClick={() => setPriority(level as Priority)}>
+                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+
+          {/* Estimated Time */}
           <div className="grid gap-2">
             <Label>Estimated Time</Label>
-            <div className="flex gap-2">
-              <div className="grid grid-cols-3 items-center gap-1">
-                <Input
-                  type="number"
-                  min="0"
-                  value={estimatedHours}
-                  onChange={(e) => setEstimatedHours(parseInt(e.target.value) || 0)}
-                  className="col-span-2"
-                />
-                <span>hours</span>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="icon"
+                type="button"
+                onClick={decreaseEstimatedTime}
+                disabled={estimatedTime <= 15}
+              >
+                -
+              </Button>
+              <div className="flex items-center justify-center w-32 h-10 rounded-md border border-gray-300 bg-white text-gray-800 font-medium">
+                {formatTime(estimatedTime)}
               </div>
-              <div className="grid grid-cols-3 items-center gap-1">
-                <Input
-                  type="number"
-                  min="0"
-                  max="59"
-                  value={estimatedMinutes}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value) || 0;
-                    setEstimatedMinutes(value > 59 ? 59 : value);
-                  }}
-                  className="col-span-2"
-                />
-                <span>minutes</span>
-              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                type="button"
+                onClick={increaseEstimatedTime}
+              >
+                +
+              </Button>
             </div>
           </div>
+
+          {/* Labels */}
           <div className="grid gap-2">
             <Label>Labels</Label>
             <div className="flex flex-wrap gap-2 mb-2">
@@ -211,8 +243,8 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
                 <Badge
                   key={label.id}
                   style={{
-                    backgroundColor: selectedLabels.includes(label.id) ? label.color : 'transparent',
-                    color: selectedLabels.includes(label.id) ? 'white' : 'inherit',
+                    backgroundColor: selectedLabels.includes(label.id) ? label.color : "transparent",
+                    color: selectedLabels.includes(label.id) ? "white" : "inherit",
                     border: `1px solid ${label.color}`
                   }}
                   className="cursor-pointer"
@@ -242,40 +274,29 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
                   />
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowLabelForm(false)}
-                  >
+                  <Button type="button" size="sm" variant="outline" onClick={() => setShowLabelForm(false)}>
                     <X className="h-4 w-4 mr-1" />
                     Cancel
                   </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={handleAddLabel}
-                  >
+                  <Button type="button" size="sm" onClick={handleAddLabel}>
                     <CheckIcon className="h-4 w-4 mr-1" />
                     Add
                   </Button>
                 </div>
               </div>
             ) : (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowLabelForm(true)}
-              >
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowLabelForm(true)}>
                 <PlusIcon className="h-4 w-4 mr-1" />
                 Add Label
               </Button>
             )}
           </div>
         </div>
+
         <DialogFooter>
-          <Button type="submit" onClick={handleAddTask}>Create Task</Button>
+          <Button type="button" onClick={handleCreateTask}>
+            Create Task
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

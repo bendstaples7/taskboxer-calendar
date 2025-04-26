@@ -115,19 +115,6 @@ const StackedTaskBoard: React.FC<StackedTaskBoardProps> = ({
     isCollapsed: collapsedSections.includes(priority),
     onToggle: () => onToggleSection(priority),
     onAddTask: () => onAddTask && onAddTask(priority),
-    onDragStart: handleTaskDragStart,
-    onDragOver: (e: React.DragEvent) => e.preventDefault(),
-    onDragLeave: () => {},
-    onDrop: (e: React.DragEvent) => {
-      e.preventDefault();
-      const taskData = e.dataTransfer.getData('application/json');
-      if (taskData && onTaskMove) {
-        const task = JSON.parse(taskData);
-        onTaskMove(task.id, priority);
-      }
-    },
-    dragOverPriority: null,
-    dragOverIndex: null,
     count: tasksArray.length,
     children: !collapsedSections.includes(priority) && tasksArray.map((task, index) => renderTaskCard(task, index, tasksArray))
   });
