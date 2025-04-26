@@ -11,7 +11,9 @@ Creating the initial memory bank files.
 -   Create the `systemPatterns.md` file.
 -   Create the `techContext.md` file.
 -   Create the `progress.md` file.
+-   Update .clinerules to use PowerShell commands.
 
 ## Active Decisions and Considerations
 -   How to best structure the memory bank files.
 -   What information to include in each file.
+-   Ensure all commands used are compatible with PowerShell.

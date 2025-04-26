@@ -9,6 +9,7 @@
 ## Development Setup
 -   Vite
 -   Bun
+-   PowerShell (for command execution)
 
 ## Technical Constraints
 -   Limited time to develop the application.

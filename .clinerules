@@ -1,0 +1,20 @@
+# .clinerules
+
+## Command Syntax
+
+-   When executing commands, use PowerShell syntax.
+-   Avoid using non-PowerShell commands such as `&&` for command chaining.
+-   Use `&` for command chaining in PowerShell.
+
+## Example
+
+Instead of:
+
+```
+git add . && git commit -m "Fix: Apply calendar view changes" && git push origin HEAD:main
+```
+
+Use:
+
+```
+git add . & git commit -m "Fix: Apply calendar view changes" & git push origin HEAD:main
