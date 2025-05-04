@@ -106,7 +106,7 @@ const Index = () => {
       const created = await createTask(task);
       const safeTask: Task = {
         ...created,
-        scheduled: created.scheduled ?? null,
+        scheduled: created.scheduled ?? undefined,
         position: created.position ?? 0,
         labels: created.labels ?? [],
         estimatedTime: created.estimatedTime ?? 30,
@@ -207,6 +207,7 @@ const Index = () => {
               scrollToCurrentTime
               minimized={!calendarExpanded}
               singleDayMode={taskboardExpanded}
+              selectedDate={selectedDate}
             />
           </AnimatedPanel>
 
@@ -228,6 +229,7 @@ const Index = () => {
                   setDefaultPriority(priority);
                   setShowAddDialog(true);
                 }}
+                onTaskDrop={handleTaskDrop}
               />
             ) : (
               <StackedTaskBoard
@@ -262,6 +264,7 @@ const Index = () => {
         defaultPriority={defaultPriority}
         labels={labels}
         availableLabels={labels}
+        onAddLabel={(label) => setLabels(prev => [...prev, label])}
         defaultEstimate={30}
       />
     </div>

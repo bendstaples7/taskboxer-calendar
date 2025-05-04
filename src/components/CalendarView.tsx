@@ -25,6 +25,7 @@ interface CalendarViewProps {
   scrollToCurrentTime?: boolean;
   minimized?: boolean;
   singleDayMode?: boolean;
+  selectedDate: Date;
 }
 
 const MINUTES_IN_DAY = 1440;
@@ -40,6 +41,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   scrollToCurrentTime,
   minimized,
   singleDayMode = false,
+  selectedDate,
 }) => {
   const today = new Date();
   const startOfThisWeek = useMemo(() => startOfWeek(today, { weekStartsOn: 0 }), []);
@@ -81,6 +83,18 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const now = new Date();
   const currentDayIndex = days.findIndex(d => isSameDay(d, now));
   const currentTopOffset = getTopOffset(now);
+
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: "TASK",
+    drop: (item: any, monitor) => {
+      const droppedTask = item.task as Task;
+      const dropStart = setHours(selectedDate, 9);
+      onTaskDrop?.(droppedTask, dropStart);
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+    }),
+  }), [selectedDate, onTaskDrop]);
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
@@ -154,11 +168,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 const minute = (index % 4) * 15;
                 const dropStart = setMinutes(setHours(day, hour), minute);
 
-                const [{ isOver, draggedItem }, drop] = useDrop<{
-                  task: Task;
-                }, void, { isOver: boolean; draggedItem: Task | null }>({
+                const [{ isOver, draggedItem }, drop] = useDrop(() => ({
                   accept: "TASK",
-                  drop: (item) => {
+                  drop: (item: any, monitor) => {
                     if (onTaskDrop) {
                       onTaskDrop(item.task, dropStart);
                     }
@@ -167,7 +179,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     isOver: monitor.isOver(),
                     draggedItem: monitor.getItem() ? (monitor.getItem() as { task: Task }).task : null,
                   }),
-                });
+                }), [onTaskDrop, day]);
 
                 const indicatorHeight = draggedItem?.estimatedTime
                   ? draggedItem.estimatedTime * MINUTE_HEIGHT

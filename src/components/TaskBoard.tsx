@@ -10,7 +10,7 @@ interface TaskBoardProps {
   onAddTask?: (priority: Priority) => void;
   onDragStart?: (task: Task) => void;
   onTaskMove?: (taskId: string, newPriority: Priority, newPosition?: number) => void;
-  onTaskDragToCalendar?: (task: Task, dropTime: Date) => void;
+  onTaskDrop?: (task: Task, newStart: Date) => void;
   minimized?: boolean;
 }
 

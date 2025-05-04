@@ -14,3 +14,5 @@ The application is in development.
 
 ## Known Issues
 -   The application does not yet integrate with Google Calendar.
+-   Created the `task-time-selection` branch.
+-   Created the `.clinerules` file.

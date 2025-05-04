@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { Label as UiLabel } from "@/components/ui/label";
 import { Priority, Task, Label as TaskLabel } from "@/lib/types";
 import { CheckIcon, PlusIcon, X, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,8 @@ interface AddTaskDialogProps {
   onAddLabel: (label: TaskLabel) => void;
   initialDuration?: number;
   defaultPriority?: Priority;
+  labels: TaskLabel[];
+  defaultEstimate?: number;
 }
 
 const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
@@ -58,7 +60,8 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
     setShowLabelForm(false);
   };
 
-  const handleCreateTask = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!title.trim()) return;
 
     const newTask: Task = {
@@ -74,6 +77,30 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
     onCreate(newTask);
     resetForm();
     onOpenChange(false);
+  };
+
+  const toggleLabel = (labelId: string) => {
+    setSelectedLabels(prev =>
+      prev.includes(labelId)
+        ? prev.filter(id => id !== labelId)
+        : [...prev, labelId]
+    );
+  };
+
+  const handleAddLabel = () => {
+    if (!newLabelName.trim()) return;
+
+    const newLabel: TaskLabel = {
+      id: uuidv4(),
+      name: newLabelName.trim(),
+      color: newLabelColor,
+    };
+
+    onAddLabel(newLabel);
+    setSelectedLabels(prev => [...prev, newLabel.id]);
+    setNewLabelName("");
+    setNewLabelColor("#3B82F6");
+    setShowLabelForm(false);
   };
 
   const increaseEstimatedTime = () => {
@@ -120,53 +147,23 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
         return `${hours} hr ${remainingMins} min`;
       }
     }
-  };
-
-  const toggleLabel = (labelId: string) => {
-    setSelectedLabels(prev =>
-      prev.includes(labelId)
-        ? prev.filter(id => id !== labelId)
-        : [...prev, labelId]
-    );
-  };
-
-  const handleAddLabel = () => {
-    if (!newLabelName.trim()) return;
-
-    const newLabel: TaskLabel = {
-      id: uuidv4(),
-      name: newLabelName.trim(),
-      color: newLabelColor,
-    };
-
-    onAddLabel(newLabel);
-    setSelectedLabels(prev => [...prev, newLabel.id]);
-    setNewLabelName("");
-    setNewLabelColor("#3B82F6");
-    setShowLabelForm(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleCreateTask();
-    }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={(open) => {
       if (!open) resetForm();
       onOpenChange(open);
     }}>
-      <DialogContent className="sm:max-w-md" onKeyDown={handleKeyDown}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add New Task</DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
+        {/* IMPORTANT: form starts here, inside DialogContent, but not around DialogContent */}
+        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           {/* Title */}
           <div className="grid gap-2">
-            <Label htmlFor="title">Title</Label>
+            <UiLabel htmlFor="title">Title</UiLabel>
             <Input
               id="title"
               value={title}
@@ -178,7 +175,7 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
 
           {/* Description */}
           <div className="grid gap-2">
-            <Label htmlFor="description">Description</Label>
+            <UiLabel htmlFor="description">Description</UiLabel>
             <Textarea
               id="description"
               value={description}
@@ -190,7 +187,7 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
 
           {/* Priority */}
           <div className="grid gap-2">
-            <Label>Priority</Label>
+            <UiLabel>Priority</UiLabel>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="justify-start w-[150px]">
@@ -210,7 +207,7 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
 
           {/* Estimated Time */}
           <div className="grid gap-2">
-            <Label>Estimated Time</Label>
+            <UiLabel>Estimated Time</UiLabel>
             <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
@@ -218,17 +215,24 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
                 type="button"
                 onClick={decreaseEstimatedTime}
                 disabled={estimatedTime <= 15}
+                className="transition-transform active:scale-95"
               >
                 -
               </Button>
-              <div className="flex items-center justify-center w-32 h-10 rounded-md border border-gray-300 bg-white text-gray-800 font-medium">
-                {formatTime(estimatedTime)}
-              </div>
+              <Input
+                type="number"
+                min="0"
+                value={estimatedTime}
+                onChange={(e) => setEstimatedTime(parseInt(e.target.value) || 0)}
+                className="w-32 text-center"
+                placeholder={formatTime(estimatedTime)}
+              />
               <Button
                 variant="outline"
                 size="icon"
                 type="button"
                 onClick={increaseEstimatedTime}
+                className="transition-transform active:scale-95"
               >
                 +
               </Button>
@@ -237,7 +241,7 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
 
           {/* Labels */}
           <div className="grid gap-2">
-            <Label>Labels</Label>
+            <UiLabel>Labels</UiLabel>
             <div className="flex flex-wrap gap-2 mb-2">
               {availableLabels.map((label) => (
                 <Badge
@@ -258,6 +262,7 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
               ))}
             </div>
 
+            {/* New Label Form */}
             {showLabelForm ? (
               <div className="grid gap-2 border p-2 rounded-md">
                 <div className="flex gap-2">
@@ -274,30 +279,31 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
                   />
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button type="button" size="sm" variant="outline" onClick={() => setShowLabelForm(false)}>
+                  <Button variant="outline" size="sm" type="button" onClick={() => setShowLabelForm(false)}>
                     <X className="h-4 w-4 mr-1" />
                     Cancel
                   </Button>
-                  <Button type="button" size="sm" onClick={handleAddLabel}>
+                  <Button size="sm" type="button" onClick={handleAddLabel}>
                     <CheckIcon className="h-4 w-4 mr-1" />
                     Add
                   </Button>
                 </div>
               </div>
             ) : (
-              <Button type="button" variant="outline" size="sm" onClick={() => setShowLabelForm(true)}>
+              <Button variant="outline" size="sm" type="button" onClick={() => setShowLabelForm(true)}>
                 <PlusIcon className="h-4 w-4 mr-1" />
                 Add Label
               </Button>
             )}
           </div>
-        </div>
 
-        <DialogFooter>
-          <Button type="button" onClick={handleCreateTask}>
-            Create Task
-          </Button>
-        </DialogFooter>
+          {/* Create Task Button */}
+          <DialogFooter>
+            <Button type="submit">
+              Create Task
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

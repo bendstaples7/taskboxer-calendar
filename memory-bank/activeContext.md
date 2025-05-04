@@ -12,6 +12,8 @@ Creating the initial memory bank files.
 -   Create the `techContext.md` file.
 -   Create the `progress.md` file.
 -   Update .clinerules to use PowerShell commands.
+-   Created the `task-time-selection` branch.
+-   Created the `.clinerules` file.
 
 ## Active Decisions and Considerations
 -   How to best structure the memory bank files.
