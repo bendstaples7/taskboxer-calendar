@@ -242,3 +242,7 @@ body,
 .google-color-9 { background-color: #3f51b5; color: white; border-color: #3f51b5; }
 .google-color-10 { background-color: #0b8043; color: white; border-color: #0b8043; }
 .google-color-11 { background-color: #d60000; color: white; border-color: #d60000; }
+
+.resize-handle:hover {
+  cursor: ns-resize;
+}

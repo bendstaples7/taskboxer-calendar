@@ -24,11 +24,8 @@ const CalendarItem: React.FC<CalendarItemProps> = ({
   const isGoogleEvent = !isTask && "isGoogleEvent" in item && item.isGoogleEvent;
 
   const [{ isDragging }, drag] = useDrag({
-    type: "CALENDAR_TASK",
-    item: () => ({
-      type: "CALENDAR_TASK",
-      task: item,
-    }),
+    type: "TASK",
+    item: { task: item },
     canDrag: isTask,
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
@@ -36,11 +33,10 @@ const CalendarItem: React.FC<CalendarItemProps> = ({
   });
 
   const wrapperClass = classNames(
-    "bg-white rounded-xl border border-gray-200 shadow-sm px-3 py-2 text-sm leading-tight w-full h-full overflow-hidden",
+    "bg-white rounded-xl border border-gray-200 shadow-sm px-3 py-2 text-sm leading-tight w-full h-full overflow-hidden cursor-pointer",
     {
       "google-color": isGoogleEvent,
       "calendar-task": isTask,
-      "cursor-pointer": true,
       "opacity-50": isDragging,
     }
   );

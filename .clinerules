@@ -5,6 +5,7 @@
 -   When executing commands, use PowerShell syntax.
 -   Avoid using non-PowerShell commands such as `&&` for command chaining.
 -   Use `&` for command chaining in PowerShell.
+-   Use `npm` instead of `bun` for package management.
 
 ## Example
 
