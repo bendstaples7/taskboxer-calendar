@@ -44,6 +44,7 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
   const [newLabelName, setNewLabelName] = useState("");
   const [newLabelColor, setNewLabelColor] = useState("#3B82F6");
   const [showLabelForm, setShowLabelForm] = useState(false);
+  const [titleError, setTitleError] = useState<string | null>(null);
 
   useEffect(() => {
     setPriority(defaultPriority || "medium");
@@ -62,7 +63,12 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim()) {
+      setTitleError("Title is required");
+      return;
+    }
+
+    setTitleError(null);
 
     const newTask: Task = {
       id: uuidv4(),
@@ -171,6 +177,9 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
               placeholder="Task title"
               autoFocus
             />
+            {titleError && (
+              <p className="text-red-500 text-sm">{titleError}</p>
+            )}
           </div>
 
           {/* Description */}
